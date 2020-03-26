@@ -1,0 +1,356 @@
+---
+title: "Descriptive Stats R Notebook"
+output: html_notebook
+---
+
+```{r echo = FASLE}
+rm(list=ls(all=TRUE))
+```
+
+```{r setup, include=FALSE, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(stargazer)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+library(robustbase)
+```
+
+```{r}
+NEW_DAT <- read.csv('NEW_DAT.csv')
+MALE_DAT <- read.csv('MALE_DAT.csv')
+FEMALE_DAT <- read.csv('FEMALE_DAT.csv')
+FIN_DAT <- read.csv('FIN_DAT.csv')
+INTER_DAT <- read.csv('INTER_DAT.csv')
+
+```
+
+```{r}
+GAZER_NEW <- NEW_DAT
+GAZER_FEMALE <- FEMALE_DAT
+GAZER_MALE <- MALE_DAT
+GAZER_INTER <- INTER_DAT
+GAZER_FIN <- FIN_DAT
+
+GAZER_NEW$SERIAL_NO <- NULL
+GAZER_FEMALE$SERIAL_NO <- NULL
+GAZER_MALE$SERIAL_NO <- NULL
+GAZER_INTER$SERIAL_NO <- NULL
+GAZER_FIN$SERIAL_NO <- NULL
+
+GAZER_NEW$WRK_UNPAID <- NULL
+GAZER_FEMALE$WRK_UNPAID <- NULL
+GAZER_NEW$WRK_UNPAID <- NULL
+GAZER_INTER$WRK_UNPAID <- NULL
+GAZER_FIN$WRK_UNPAID <- NULL
+
+```
+
+```{r}
+colnames(GAZER_NEW)
+```
+
+```{r}
+GAZER_NEW$NATIVE_CITIZEN <- GAZER_NEW$B_CIT
+GAZER_NEW$NATURALIZED_CITIZEN <- GAZER_NEW$NAT_CIT  
+GAZER_NEW$PRIVATE_SECTOR_WORKER <- GAZER_NEW$PRIVATE_SEC
+GAZER_NEW$PUBLIC_SECTOR_WORKER <- GAZER_NEW$GOV_SEC
+GAZER_NEW$SELF_EMPLOYED_WORKER <- GAZER_NEW$SELF_EMP
+GAZER_NEW$SECONDARY_GED_DIP <- GAZER_NEW$SEC_DIP
+GAZER_NEW$COMPLETED_SECONDARY_NO_DIP <- GAZER_NEW$SEC_EDU
+GAZER_NEW$ASSOCIATE_DEGREE <- GAZER_NEW$AST_EDU
+GAZER_NEW$BACHELORS_DEGREE <- GAZER_NEW$BACH_EDU
+GAZER_NEW$PROFESSIONAL_DEGREE <- GAZER_NEW$PROF_EDU
+GAZER_NEW$DOCTORAL_DEGREE <- GAZER_NEW$DOC_EDU
+GAZER_NEW$BLACK_AFRICAN_AMERICAN <- NEW_DAT$BLK_AFRI
+
+```
+
+
+```{r}
+GAZER_NEW$B_CIT <- NULL
+GAZER_NEW$NAT_CIT <- NULL
+GAZER_NEW$PRIVATE_SEC <- NULL
+GAZER_NEW$GOV_SEC <- NULL
+GAZER_NEW$SELF_EMP <- NULL
+GAZER_NEW$SEC_DIP <- NULL
+GAZER_NEW$SEC_EDU <- NULL
+GAZER_NEW$AST_EDU <- NULL
+GAZER_NEW$BACH_EDU <- NULL
+GAZER_NEW$DOC_EDU <- NULL
+GAZER_NEW$BLK_AFRI <- NULL
+GAZER_NEW$MAST_EDU <- NULL
+GAZER_NEW$PROF_EDU <- NULL
+GAZER_NEW$NATIVITY <- NULL
+
+```
+
+```{r}
+colnames(GAZER_NEW)
+```
+
+```{r}
+colnames(FEMALE_DAT)
+```
+
+
+```{r}
+GAZER_NEW <- GAZER_NEW[c("EARNINGS", "LOG_EARNINGS", "AGE", "AGE_SQR", "NATIVE_CITIZEN", "NATURALIZED_CITIZEN", "PRIVATE_SECTOR_WORKER", "PUBLIC_SECTOR_WORKER", "SELF_EMPLOYED_WORKER", "MULTILINGUAL", "MARRIED", "WIDOWED", "DIVORCED", "SEPARATED", "SINGLE", "SECONDARY_GED_DIP", "COMPLETED_SECONDARY_NO_DIP", "ASSOCIATE_DEGREE", "BACHELORS_DEGREE", "PROFESSIONAL_DEGREE", "DOCTORAL_DEGREE", "FEMALE", "MALE", "DISABILITY", "WHITE", "BLACK_AFRICAN_AMERICAN", "ASIAN", "MULTIRACIAL")]
+```
+
+```{r}
+GAZER_FEMALE <- subset(GAZER_NEW, FEMALE == 1)
+GAZER_MALE <- subset(GAZER_NEW, MALE == 0)
+```
+
+
+```{r}
+stargazer::stargazer(GAZER_NEW, type = "text", digits = 2, median = TRUE, title = "Descriptive Statistics of Full Sample")
+
+stargazer::stargazer(GAZER_FEMALE, type = "text", digits = 2, median = TRUE, title = "Descriptive Statistics of Female Dataset")
+
+stargazer::stargazer(GAZER_MALE, type = "text", digits = 2, median = TRUE, title = "Descriptive Statistics of Male Dataset")
+
+stargazer::stargazer(GAZER_FIN, type = "text", digits = 2, median = TRUE, title = "Descriptive Statistic of Labeforce Dataset")
+
+```
+
+
+```{r}
+"Less Than 1K"  
+(nrow(subset(FIN_DAT, EARNINGS < 1000)))
+"Less Than 1K %"  
+(nrow(subset(FIN_DAT, EARNINGS < 1000))/nrow(FIN_DAT))*100
+
+"On Welfare"  
+(nrow(subset(FIN_DAT, WELFARE == 1)))
+"On Welfare %"  
+(nrow(subset(FIN_DAT, WELFARE == 1))/nrow(FIN_DAT))*100
+
+"Removed Racial Groups"  
+(nrow(subset(FIN_DAT, NAT_AMR == 1)) + nrow(subset(FIN_DAT, ALASKAN == 1)) + nrow(subset(FIN_DAT, INDIGINEOUS == 1)) + nrow(subset(FIN_DAT, HAWAIAN == 1)))
+
+"Removed Racial Groups %"  
+(nrow(subset(FIN_DAT, NAT_AMR == 1)) + nrow(subset(FIN_DAT, ALASKAN == 1)) + nrow(subset(FIN_DAT, INDIGINEOUS == 1)) + nrow(subset(FIN_DAT, HAWAIAN == 1))) / ((nrow(FIN_DAT))*100)
+
+```
+
+```{r}
+"On Welfare Below 20K"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS < 20000)))
+"On Welfare Below 20K %"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS < 20000))/nrow(FIN_DAT))*100
+"On Welfare Above 20K"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS > 20000)))
+"On Welfare Above 20K %"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS > 20000))/nrow(FIN_DAT))*100
+
+"On Welfare Below 40K"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS < 40000)))
+"On Welfare Below 40K %"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS < 40000))/nrow(FIN_DAT))*100
+"On Welfare Above 40K"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS > 40000)))
+"On Welfare Above 40K %"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS > 40000))/nrow(FIN_DAT))*100
+
+"On Welfare Below 60K"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS < 60000)))
+"On Welfare Below 60K %"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS < 60000))/nrow(FIN_DAT))*100
+"On Welfare Above 60K"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS > 60000)))
+"On Welfare Above 60K %"  
+(nrow(subset(FIN_DAT, WELFARE == 1 & EARNINGS > 60000))/nrow(FIN_DAT))*100
+```
+
+```{r}
+"Less Than 20K: " 
+(nrow(subset(NEW_DAT, EARNINGS < 20000)))
+"Less Than 20K %: " 
+(nrow(subset(NEW_DAT, EARNINGS < 20000))/nrow(NEW_DAT))*100
+"Less Than 40K: " 
+(nrow(subset(NEW_DAT, EARNINGS < 40000)))
+"Less Than 40K %: " 
+(nrow(subset(NEW_DAT, EARNINGS < 40000))/nrow(NEW_DAT))*100
+"Less Than 60K: " 
+(nrow(subset(NEW_DAT, EARNINGS < 60000)))
+"Less Than 60K %:" 
+(nrow(subset(NEW_DAT, EARNINGS < 60000))/nrow(NEW_DAT))*100
+```
+
+```{r}
+"Diff b/w Women and Men Average Earnings"
+abs(mean(FEMALE_DAT$EARNINGS) - mean(MALE_DAT$EARNINGS))
+
+"Diff b/w Women and Men Median Earnings"
+abs(median(FEMALE_DAT$EARNINGS) - median(MALE_DAT$EARNINGS))
+
+"Diff b/w Women and Men Max Earnings"
+abs(max(FEMALE_DAT$EARNINGS) - max(MALE_DAT$EARNINGS))
+
+
+```
+
+```{r}
+"Number of Multilingual Speakers"
+sum(NEW_DAT$MULTILINGUAL)
+
+"Number of Female Multilingual Speakers"
+sum(FEMALE_DAT$MULTILINGUAL)
+
+"Number of Male Multilingual Speakers"
+sum(MALE_DAT$MULTILINGUAL)
+
+
+"Number of Female Multilingual Speakers %"
+sum(FEMALE_DAT$MULTILINGUAL)/sum(NEW_DAT$MULTILINGUAL)
+
+"Number of Male Multilingual Speakers %"
+sum(MALE_DAT$MULTILINGUAL)/sum(NEW_DAT$MULTILINGUAL)
+
+```
+
+```{r}
+"Correlation Between Multingualism and Nativity"
+(cor(NEW_DAT$NATIVITY == 1, NEW_DAT$MULTILINGUAL == 1))*100
+
+"Correlation Between Multingualism and Non-Nativity"
+(cor(NEW_DAT$NATIVITY == 0, NEW_DAT$MULTILINGUAL == 1))*100
+
+"Correlation Between Multigualism and Naturalized"
+(cor(NEW_DAT$NAT_CIT == 1, NEW_DAT$MULTILINGUAL == 1))*100
+
+"Correlation Between Multigualism and Not Citizen"
+(cor(NEW_DAT$NOT_CIT == 1, NEW_DAT$MULTILINGUAL == 1))*100
+```
+
+```{r}
+"Male Correlation Between Multingualism and Non-Nativity"
+(cor(MALE_DAT$NATIVITY == 1, MALE_DAT$MULTILINGUAL == 1))*100
+
+"Male Correlation Between Multingualism and Nativity"
+(cor(MALE_DAT$NATIVITY == 0, MALE_DAT$MULTILINGUAL == 1))*100
+
+"Male Correlation Between Multigualism and Naturalized"
+(cor(MALE_DAT$NAT_CIT == 1, MALE_DAT$MULTILINGUAL == 1))*100
+
+"Male Correlation Between Multigualism and Not Citizen"
+(cor(MALE_DAT$NOT_CIT == 1, MALE_DAT$MULTILINGUAL == 1))*100
+
+"Female Correlation Between Multingualism and Nativity"
+(cor(FEMALE_DAT$NATIVITY == 1, FEMALE_DAT$MULTILINGUAL == 1))*100
+
+"Female Correlation Between Multingualism and Non-Nativity"
+(cor(FEMALE_DAT$NATIVITY == 0, FEMALE_DAT$MULTILINGUAL == 1))*100
+
+"Female Correlation Between Multigualism and Naturalized"
+(cor(FEMALE_DAT$NAT_CIT == 1, FEMALE_DAT$MULTILINGUAL == 1))*100
+
+"Female Correlation Between Multigualism and Not Citizen"
+(cor(FEMALE_DAT$NOT_CIT == 1, FEMALE_DAT$MULTILINGUAL == 1))*100
+
+
+```
+
+```{r}
+
+"Intersection of Non-Native Citizens and Multilingualness"
+nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NATIVITY == 0))
+
+"Intersection of Non-Native Citizens and Multilingualness %"
+(nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NATIVITY == 0))/nrow(NEW_DAT))*100
+
+"Intersection of Native Citizens and Multilingualness"
+nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NATIVITY == 1))
+
+"Intersection of Native Citizens and Multilingualness %"
+(nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NATIVITY == 1))/nrow(NEW_DAT))*100
+
+"Intersection of Natturalized Citizens and Multilingualness"
+nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NAT_CIT  == 1))
+
+"Intersection of Naturalized Citizens and Multilingualness %"
+(nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NAT_CIT == 1))/nrow(subset(NEW_DAT, NATIVITY == 0)))*100
+
+"Intersection of Non Citizens and Multilingualness"
+nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NOT_CIT == 1))
+
+"Intersection of Non Citizens and Multilingualness %"
+(nrow(subset(NEW_DAT, MULTILINGUAL == 1 & NOT_CIT == 1))/nrow(subset(NEW_DAT, NATIVITY == 0)))*100
+```
+
+```{r}
+"Male Intersection of Non-Native Citizens and Multilingualness"
+nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NATIVITY == 0))
+
+"Male Intersection of Non-Native Citizens and Multilingualness %"
+(nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NATIVITY == 0))/nrow(MALE_DAT))*100
+
+"Male Intersection of Native Citizens and Multilingualness"
+nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NATIVITY == 1))
+
+"Male Intersection of Native Citizens and Multilingualness %"
+(nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NATIVITY == 1))/nrow(MALE_DAT))*100
+
+"Male Intersection of Natturalized Citizens and Multilingualness"
+nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NAT_CIT  == 1))
+
+"Male Intersection of Naturalized Citizens and Multilingualness %"
+(nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NAT_CIT == 1))/nrow(subset(MALE_DAT, NATIVITY == 0)))*100
+
+"Male Intersection of Non Citizens and Multilingualness"
+nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NOT_CIT == 1))
+
+"Male Intersection of Non Citizens and Multilingualness %"
+(nrow(subset(MALE_DAT, MULTILINGUAL == 1 & NOT_CIT == 1))/nrow(subset(MALE_DAT, NATIVITY == 0)))*100
+```
+
+```{r}
+"Female Intersection of Non-Native Citizens and Multilingualness"
+nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NATIVITY == 0))
+
+"Female Intersection of Non-Native Citizens and Multilingualness %"
+(nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NATIVITY == 0))/nrow(FEMALE_DAT))*100
+
+"Female Intersection of Native Citizens and Multilingualness"
+nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NATIVITY == 1))
+
+"Female Intersection of Native Citizens and Multilingualness %"
+(nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NATIVITY == 1))/nrow(FEMALE_DAT))*100
+
+"Female Intersection of Natturalized Citizens and Multilingualness"
+nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NAT_CIT  == 1))
+
+"Female Intersection of Naturalized Citizens and Multilingualness %"
+(nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NAT_CIT == 1))/nrow(subset(FEMALE_DAT, NATIVITY == 0)))*100
+
+"Female Intersection of Non Citizens and Multilingualness"
+nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NOT_CIT == 1))
+
+"Female Intersection of Non Citizens and Multilingualness %"
+(nrow(subset(FEMALE_DAT, MULTILINGUAL == 1 & NOT_CIT == 1))/nrow(subset(FEMALE_DAT, NATIVITY == 0)))*100
+```
+
+```{r}
+
+"Multilingual Average Earnings"
+mean(subset(NEW_DAT, MULTILINGUAL == 1)$EARNINGS)
+
+```
+
+```{r}
+"INTERSECTION BETWEEN BEING WHITE AND MULTILINGUAL %"
+nrow(subset(NEW_DAT, MULTILINGUAL == 1, WHITE == 1))/nrow(NEW_DAT)
+```
+
+
+
+
+
+
+

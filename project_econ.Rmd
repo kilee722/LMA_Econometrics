@@ -1,0 +1,78 @@
+---
+title: "proj_econ"
+author: "Ki Min Lee"
+date: "1/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Remove objects (data) from your workspace
+rm(list=ls(all=TRUE))
+```
+
+```{r}
+#Install psych package
+library(psych)
+library(DataExplorer)
+library(corrplot)
+```
+
+```{r}
+df <- read.csv("C:/Users/klee1/OneDrive/Desktop/School/Term2/ECON5300/project/Raw_Project_Data.csv")
+```
+
+```{r}
+colnames(df)
+```
+
+```{r}
+head(df, 10)
+```
+```{r}
+str(df)
+```
+
+```{r}
+summary(df)
+```
+```{r}
+plot_histogram(df)
+```
+```{r}
+plot_boxplot(df)
+```
+```{r}
+#english ability, other language, edu level
+df$ENGLISH_ABILITY <- is.numeric(df$ENGLISH_ABILITY)
+df$OTHER_LANGUAGE <- is.numeric(df$OTHER_LANGUAGE)
+df$EDU_LEVEL <- is.numeric(df$EDU_LEVEL)
+
+cor(df$ENGLISH_ABILITY, df$OTHER_LANGUAGE, df$EDU_LEVEL)
+```
+
+```{r}
+# nativity, second gen, other language, eng ability
+```
+
+```{r}
+#children, earnings, income, disability, marital status
+```
+
+```{r}
+cor(df[,unlist(lapply(df, is.numeric))])
+```
+```{r}
+plot_bar(df)
+```
+```{r}
+plot_correlation(df)
+```
+
+
+
+
+

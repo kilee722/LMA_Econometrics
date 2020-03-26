@@ -1,0 +1,183 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r echo = FASLE}
+rm(list=ls(all=TRUE))
+```
+
+```{r setup, include=FALSE, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(stargazer)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+library(robustbase)
+library(mvtnorm)
+library(expsmooth)
+```
+
+```{r}
+MALE_DAT <- read.csv('MALE_DAT.csv')
+FEMALE_DAT <- read.csv('FEMALE_DAT.csv')
+INTER_DAT <- read.csv('INTER_DAT.csv')
+NEW_DAT <- read.csv("NEW_DAT.csv")
+```
+
+```{r}
+log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = NEW_DAT)
+
+summary(log_mod)
+```
+
+```{r}
+bptest(log_mod)
+log_mod_se <- (diag(vcovHC(log_mod, type = "HC"))^0.5)
+log_mod_coef <- (coef(log_mod))
+```
+
+```{r}
+plot(fitted(log_mod), residuals(log_mod),
+     xlab = "
+     Predicted Values 
+     of Logarithmic Earnings Model", 
+     ylab = "Residual Values 
+     of Logarithmic Earnings Model",
+     main = "
+     Fitted Values vs. Residual Values ~ Testing for Heteroskedasiticty
+     ")
+abline(h = 0, col = "red")
+abline(h = mean(fitted(log_mod)), col = "blue")
+```
+
+
+# female data frame only
+```{r}
+female_log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI +  + ASIAN  + MULTIRACIAL, data = FEMALE_DAT)
+
+summary(female_log_mod)
+```
+
+```{r}
+bptest(female_log_mod)
+female_robust_se <- (diag(vcovHC(female_log_mod, type = "HC"))^0.5)
+female_robust_coef <-(coef(female_log_mod))
+```
+
+```{r}
+plot(fitted(female_log_mod), residuals(female_log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(female_log_mod)), col = "blue")
+```
+
+
+# male data frame only reression
+```{r}
+male_log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = MALE_DAT)
+
+summary(male_log_mod)
+```
+
+```{r}
+bptest(male_log_mod)
+male_robust_se <- (diag(vcovHC(male_log_mod, type = "HC"))^0.5)
+male_robust_coef <- (coef(male_log_mod))
+```
+
+```{r}
+plot(fitted(male_log_mod), residuals(male_log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(male_log_mod)), col = "blue")
+```
+
+# Interaction Variables
+
+```{r}
+interact_log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL + AGE_FEM + AGE_SQR_FEM + NAT_CIT_FEM + NOT_CIT_FEM + GOV_SEC_FEM + MULTILINGUAL_FEM + MARRIED_FEM + WIDOWED_FEM + DIVORCED_FEM + SEPARATED_FEM + SEC_EDU_FEM + AST_EDU_FEM + BACH_EDU_FEM + MAST_EDU_FEM + PROF_EDU_FEM + DOC_EDU_FEM + DISABILITY_FEM + BLK_AFRI_FEM + ASIAN_FEM  + MULTIRACIAL , data = INTER_DAT)
+
+summary(interact_log_mod)
+```
+
+```{r}
+bptest(interact_log_mod)
+inter_robust_se <- (diag(vcovHC(interact_log_mod, type = "HC"))^0.5)
+inter_robust_coef <-(coef(interact_log_mod))
+```
+
+```{r}
+plot(fitted(interact_log_mod), residuals(interact_log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(interact_log_mod)), col = "blue")
+```
+
+```{r}
+stargazer::stargazer(female_log_mod, female_log_mod, male_log_mod,  male_log_mod,
+                     type = "text", 
+                     title = "Comparision Between Gendered Default and Robust Log Earnings Model",
+                     covariate.labels = c(NA, NA, "NATURALIZED CITZEN", "NOT CITZEN", "GOVERNMENT SECTOR", NA, NA, NA, NA, NA, "HIGH SCHOOL/GED", "BACHELOR'S", "MASTER'S", "PROFESSIONAL DEGREE", "DOCTORAL", NA, "BLACK/AFRICAN", "ASIAN", NA),
+                     order = c("constant"),
+                     coef = list(NULL, female_robust_coef, NULL, male_robust_coef), 
+                     se = list(NULL, female_robust_se, NULL, male_robust_se), 
+                     column.labels = c("Female Default", "Female Robust", "Male Default", "Male Robust"), 
+                     model.names = FALSE,
+                     align = TRUE, no.space = TRUE)
+```
+
+
+```{r}
+stargazer::stargazer(female_log_mod, male_log_mod,
+                     type = "text", 
+                     title = "Log Earnings Model",
+                     dep.var.labels = c("Correct for Heteroskedasticity"),
+                     column.labels = c("Female Robust", "Male Robust"), 
+                     covariate.labels = c(NA, NA, "Naturalized Citizen", "Non-Citizen", "Public Sector", NA, NA, NA, NA, NA, "High School or GED", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Professional Degree", "Doctoral Degree", NA, NA, "Black or African American", NA, NA, "Intercept"),
+                     coef = list(female_robust_coef, male_robust_coef), 
+                     se = list(female_robust_se, male_robust_se), 
+                     align = TRUE, no.space = TRUE)
+```
+
+```{r}
+
+stargazer::stargazer(log_mod, log_mod, female_log_mod, female_log_mod, male_log_mod,  male_log_mod,
+                     type = "text", 
+                     title = "Comparison of All Log Earnings Model",
+                     covariate.labels = c(NA, NA, "Naturalized Citizen", "Non-Citizen", "Public Sector", NA, NA, NA, NA, NA, "High School or GED", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Professional Degree", "Doctoral Degree", NA, NA, "Black or African American", NA, NA, "Intercept"),
+                     order = c("constant"),
+                     coef = list(NULL, log_mod_coef, NULL, female_robust_coef, NULL, male_robust_coef), 
+                     se = list(NULL, log_mod_se, NULL, female_robust_se, NULL, male_robust_se), 
+                     column.labels = c("Initial Model", "Initial Robust","Female Default", "Female Robust", "Male Default", "Male Robust"), 
+                     model.names = FALSE,
+                     align = TRUE, no.space = TRUE)
+```
+
+
+```{r}
+stargazer::stargazer(log_mod, female_log_mod, male_log_mod,
+                     type = "text", 
+                     title = "Robust Log Earnings Model",
+                     dep.var.labels = c("Corrected for Heteroskedasticity"),
+                     column.labels = c("Inital Robust", "Female Robust", "Male Robust"), 
+                     covariate.labels = c(NA, NA, "Naturalized Citizen", "Non-Citizen", "Public Sector", NA, NA, NA, NA, NA, "High School or GED", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Professional Degree", "Doctoral Degree", NA, NA, "Black or African American", NA, NA, "Intercept"),
+                     coef = list(log_mod_coef, female_robust_coef, male_robust_coef), 
+                     se = list(log_mod_se, female_robust_se, male_robust_se), 
+                     align = TRUE, no.space = TRUE)
+```
+
+```{r}
+
+stargazer::stargazer(log_mod,
+                     type = "text", 
+                     title = "Robust Log Earnings Model",
+                     dep.var.labels = c("Initial, Non-Gendered Model Corrected for Heteroskedasticity"),
+                     column.labels = c("Inital Robust"), 
+                     covariate.labels = c(NA, NA, "Naturalized Citizen", "Non-Citizen", "Public Sector", NA, NA, NA, NA, NA, "High School or GED", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Professional Degree", "Doctoral Degree", NA, NA, "Black or African American", NA, NA, "Intercept"),
+                     coef = list(log_mod_coef), 
+                     se = list(log_mod_se), 
+                     align = TRUE, no.space = TRUE)
+```
+

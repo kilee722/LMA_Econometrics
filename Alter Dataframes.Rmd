@@ -1,0 +1,386 @@
+---
+title: "Altered Dataframes R Notebook"
+output: html_notebook
+---
+
+
+```{r echo = FASLE}
+rm(list=ls(all=TRUE))
+```
+
+```{r setup, include=FALSE, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(stargazer)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+library(robustbase)
+```
+
+```{r}
+raw_dat <- read.csv('Raw_Project_Data_2.csv')
+```
+
+```{r echo = FALSE}
+dummy_dat = data.frame(
+  # citizenship
+  born_citizen = if_else(raw_dat$CITIZENSHIP == 1, 1, if_else(raw_dat$CITIZENSHIP == 2, 1, if_else(raw_dat$CITIZENSHIP == 3, 1, 0))),
+  naturalized_citizen = if_else(raw_dat$CITIZENSHIP == 4, 1, 0),
+  not_citizen = if_else(raw_dat$CITIZENSHIP == 5, 1, 0),
+  
+  # worker classification
+  NILF = if_else(raw_dat$WORKER_CLASS == 'b', 1, 0),
+  private_sector = if_else(raw_dat$WORKER_CLASS == 1, 1, 0),
+  gov_sector = if_else(raw_dat$WORKER_CLASS == 2, 1, if_else(raw_dat$WORKER_CLASS == 3, 1, if_else(raw_dat$WORKER_CLASS == 4, 1, if_else(raw_dat$WORKER_CLASS == 5, 1, 0)))),
+  self_employed = if_else(raw_dat$WORKER_CLASS == 5, 1, if_else(raw_dat$WORKER_CLASS == 6, 1, 0)),
+  without_pay = if_else(raw_dat$WORKER_CLASS == 8, 1, 0),
+  unemployed = if_else(raw_dat$WORKER_CLASS == 9, 1, 0),
+  
+  # ability to speak english
+  under5_english = if_else(raw_dat$ENGLISH_ABILITY == 'b', 1, 0),
+  eng_very_well = if_else(raw_dat$ENGLISH_ABILITY == 1, 1, 0),
+  eng_well = if_else(raw_dat$ENGLISH_ABILITY == 2, 1, 0),
+  eng_not_well = if_else(raw_dat$ENGLISH_ABILITY == 3, 1, 0),
+  eng_none = if_else(raw_dat$ENGLISH_ABILITY == 4, 1, 0),
+  
+  # bi-lingual
+  under5_multi = if_else(raw_dat$OTHER_LANGUAGE == 'b', 1, 0),
+  multilingual = if_else(raw_dat$OTHER_LANGUAGE == 1, 1, 0),
+  
+  # martial status
+  married = if_else(raw_dat$MAR_STATUS == 1, 1, 0),
+  widowed = if_else(raw_dat$MAR_STATUS == 2, 1, 0),
+  divorced = if_else(raw_dat$MAR_STATUS == 3, 1, 0),
+  separated = if_else(raw_dat$MAR_STATUS == 4, 1, 0),
+  single = if_else(raw_dat$MAR_STATUS == 5, 1, 0),
+
+  # educational obtainment
+  under_5_edu = if_else(raw_dat$EDU_LEVEL == 'bb', 1, 0),
+  uncomplete_edu = if_else(raw_dat$EDU_LEVEL == 01, 1, 0),
+  primary_edu = if_else(raw_dat$EDU_LEVEL == 03, 1, if_else(raw_dat$EDU_LEVEL == 04, 1, if_else(raw_dat$EDU_LEVEL == 05, 1, if_else(raw_dat$EDU_LEVEL == 06, 1, if_else(raw_dat$EDU_LEVEL == 07, 1, if_else(raw_dat$EDU_LEVEL == 08, 1, if_else(raw_dat$EDU_LEVEL == 09, 1, if_else(raw_dat$EDU_LEVEL == 10, 1, if_else(raw_dat$EDU_LEVEL == 11, 1, 0))))))))),
+  secondary_edu = if_else(raw_dat$EDU_LEVEL == 15, 1, 0),
+  secondary_diploma = if_else(raw_dat$EDU_LEVEL == 16, 1, 0),
+  secondary_complete = if_else(raw_dat$EDU_LEVEL == 15, 1, if_else(raw_dat$EDU_LEVEL == 16, 1, if_else(raw_dat$EDU_LEVEL == 17, 1, 0))),
+  GED = if_else(raw_dat$EDU_LEVEL == 17, 1,0),
+  some_secondary = if_else(raw_dat$EDU_LEVEL == 12, 1, if_else(raw_dat$EDU_LEVEL == 13, 1,if_else(raw_dat$EDU_LEVEL == 14, 1, if_else(raw_dat$EDU_LEVEL == 15, 1, 0)))),
+  associates = if_else(raw_dat$EDU_LEVEL == 20, 1, 0),
+  bachelors = if_else(raw_dat$EDU_LEVEL == 21, 1, 0),
+  some_college = if_else(raw_dat$EDU_LEVEL == 18, 1, if_else(raw_dat$EDU_LEVEL == 19, 1, 0)),
+  masters = if_else(raw_dat$EDU_LEVEL == 22, 1, 0),
+  professional = if_else(raw_dat$EDU_LEVEL == 23, 1, 0),
+  doctoral = if_else(raw_dat$EDU_LEVEL == 24, 1, 0),
+  
+  # sex
+  male = if_else(raw_dat$SEX == 1, 1, 0),
+  female = if_else(raw_dat$SEX == 2, 1, 0),
+  
+  # disability
+  disability_dummy = if_else(raw_dat$DISABILITY == 1, 1, 0),
+  
+  # nativity
+  nativity_dummy = if_else(raw_dat$NATIVITY == 1, 1, 0),
+  non_nativity_dummy = if_else(raw_dat$NATIVITY == 0, 1, 0),
+
+  # nativity of parents
+  not_child = if_else(raw_dat$SECOND_GEN == 'b', 1, 0),
+  not_second = if_else(raw_dat$SECOND_GEN == 1, 1, if_else(raw_dat$SECOND_GEN == 5, 1, if_else(raw_dat$SECOND_GEN == 7, 1, 0))),
+  second_gen_dummy = if_else(raw_dat$SECOND_GEN == 2, 1, if_else(raw_dat$SECOND_GEN == 3, 1, if_else(raw_dat$SECOND_GEN == 4, 1, if_else(raw_dat$SECOND_GEN == 6, 1, if_else(raw_dat$SECOND_GEN == 8, 1, 0))))),
+  
+  # race
+  
+  white = if_else(raw_dat$RACE == 1, 1, 0),
+  black_african = if_else(raw_dat$RACE == 2, 1, 0),
+  native_indian = if_else(raw_dat$RACE == 3, 1, 0),
+  alaskan_native = if_else(raw_dat$RACE == 4, 1, 0),
+  native_american = if_else(raw_dat$RACE == 5, 1, 0),
+  asian_alone = if_else(raw_dat$RACE == 6, 1, 0),
+  hawaian_alone = if_else(raw_dat$RACE == 7, 1, 0),
+  two_race = if_else(raw_dat$RACE == 8, 1, 0),
+  mixed_race = if_else(raw_dat$RACE == 9, 1, 0),
+  
+  welfare = if_else(raw_dat$SUPP_INC > 0, 1, if_else(raw_dat$SOCIAL_SECURITY > 0, 1, 0))
+)
+```
+
+```{r}
+NEW_RAW_DAT <- dummy_dat
+```
+
+```{r echo = FALSE}
+NEW_RAW_DAT$SERIAL_NO <- raw_dat$SERIALNO
+NEW_RAW_DAT$EARNINGS <- raw_dat$EARNINGS
+NEW_RAW_DAT$INCOME <- raw_dat$INCOME
+NEW_RAW_DAT$WAGE <- raw_dat$WAGE
+NEW_RAW_DAT$AGE <- raw_dat$AGE
+NEW_RAW_DAT$SUPP_INC <- raw_dat$SUPP_INC 
+NEW_RAW_DAT$SOCIAL_SECURITY <- raw_dat$SOCIAL_SECURITY 
+NEW_RAW_DAT$HR_WORKED <- raw_dat$HOURS_WORKED 
+NEW_RAW_DAT$WK_WORKED <- raw_dat$WEEKS_WORKED 
+```
+
+```{r echo = FALSE}
+NEW_RAW_DAT$SUPP_INC <- NEW_RAW_DAT$SUPP_INC 
+NEW_RAW_DAT$SOCIAL_SECURITY <- NEW_RAW_DAT$SOCIAL_SECURITY 
+NEW_RAW_DAT$HR_WORKED <- NEW_RAW_DAT$HR_WORKED
+NEW_RAW_DAT$WK_WORKED <- NEW_RAW_DAT$WK_WORKED 
+NEW_RAW_DAT$B_CIT <- NEW_RAW_DAT$born_citizen 
+NEW_RAW_DAT$NAT_CIT <- NEW_RAW_DAT$naturalized_citizen 
+NEW_RAW_DAT$NOT_CIT <- NEW_RAW_DAT$not_citizen 
+NEW_RAW_DAT$NOT_LABOR <- NEW_RAW_DAT$NILF
+NEW_RAW_DAT$PRIVATE_SEC <- NEW_RAW_DAT$private_sector 
+NEW_RAW_DAT$GOV_SEC <- NEW_RAW_DAT$gov_sector 
+NEW_RAW_DAT$SELF_EMP <- NEW_RAW_DAT$self_employed 
+NEW_RAW_DAT$WRK_UNPAID <- NEW_RAW_DAT$without_pay 
+NEW_RAW_DAT$UNEMP <- NEW_RAW_DAT$unemployed 
+NEW_RAW_DAT$UNDER_ENG <- NEW_RAW_DAT$under5_english 
+NEW_RAW_DAT$ENG_VW <- NEW_RAW_DAT$ eng_very_well 
+NEW_RAW_DAT$ENG_W <- NEW_RAW_DAT$eng_well 
+NEW_RAW_DAT$ENG_NW <- NEW_RAW_DAT$eng_not_well 
+NEW_RAW_DAT$ENG_NON <- NEW_RAW_DAT$eng_none 
+NEW_RAW_DAT$UNDER_MULTI <- NEW_RAW_DAT$under5_multi 
+NEW_RAW_DAT$MULTILINGUAL <- NEW_RAW_DAT$ multilingual 
+NEW_RAW_DAT$MARRIED <- NEW_RAW_DAT$ married 
+NEW_RAW_DAT$WIDOWED <- NEW_RAW_DAT$widowed 
+NEW_RAW_DAT$DIVORCED <- NEW_RAW_DAT$divorced 
+NEW_RAW_DAT$SEPARATED <- NEW_RAW_DAT$separated 
+NEW_RAW_DAT$NOT_MARRIED <- NEW_RAW_DAT$not_married 
+NEW_RAW_DAT$SINGLE <- NEW_RAW_DAT$single
+NEW_RAW_DAT$UNDER_EDU <- NEW_RAW_DAT$under_5_edu 
+NEW_RAW_DAT$INCOMP_EDU <- NEW_RAW_DAT$uncomplete_edu 
+NEW_RAW_DAT$PRIM_EDU <- NEW_RAW_DAT$primary_edu 
+NEW_RAW_DAT$SEC_INCOMP <- NEW_RAW_DAT$secondary_edu 
+NEW_RAW_DAT$SEC_DIP <- NEW_RAW_DAT$secondary_diploma 
+NEW_RAW_DAT$SEC_EDU <- NEW_RAW_DAT$secondary_complete 
+NEW_RAW_DAT$GED_EDU <- NEW_RAW_DAT$GED 
+NEW_RAW_DAT$SOME_SEC <- NEW_RAW_DAT$some_secondary 
+NEW_RAW_DAT$AST_EDU <- NEW_RAW_DAT$associates
+NEW_RAW_DAT$BACH_EDU <- NEW_RAW_DAT$bachelors 
+NEW_RAW_DAT$SOME_COL <- NEW_RAW_DAT$some_college 
+NEW_RAW_DAT$MAST_EDU <- NEW_RAW_DAT$ masters 
+NEW_RAW_DAT$PROF_EDU <- NEW_RAW_DAT$professional 
+NEW_RAW_DAT$DOC_EDU <- NEW_RAW_DAT$doctoral 
+NEW_RAW_DAT$MALE <- NEW_RAW_DAT$male 
+NEW_RAW_DAT$FEMALE <- NEW_RAW_DAT$female 
+NEW_RAW_DAT$DISABILITY <- NEW_RAW_DAT$disability_dummy 
+NEW_RAW_DAT$NATIVITY <- NEW_RAW_DAT$nativity_dummy 
+NEW_RAW_DAT$NON_NATIVE <- NEW_RAW_DAT$non_nativity_dummy
+NEW_RAW_DAT$NOT_CHILD <- NEW_RAW_DAT$not_child 
+NEW_RAW_DAT$NOT_SEC <- NEW_RAW_DAT$not_second 
+NEW_RAW_DAT$SEC_GEN <- NEW_RAW_DAT$second_gen_dummy
+NEW_RAW_DAT$WHITE <- NEW_RAW_DAT$white
+NEW_RAW_DAT$BLK_AFRI <- NEW_RAW_DAT$black_african
+NEW_RAW_DAT$NAT_AMR <- NEW_RAW_DAT$native_indian
+NEW_RAW_DAT$ALASKAN <- NEW_RAW_DAT$alaskan_native
+NEW_RAW_DAT$INDIGINEOUS <- NEW_RAW_DAT$native_american
+NEW_RAW_DAT$ASIAN <- NEW_RAW_DAT$asian_alone
+NEW_RAW_DAT$HAWAIAN <- NEW_RAW_DAT$hawaian_alone
+NEW_RAW_DAT$BI_RACIAL <- NEW_RAW_DAT$two_race
+NEW_RAW_DAT$MULTI_RACIAL <- NEW_RAW_DAT$mixed_race
+NEW_RAW_DAT$WELFARE <- NEW_RAW_DAT$welfare
+```
+
+```{r}
+FIN_DAT <- NEW_RAW_DAT
+```
+
+```{r echo = FALSE}
+FIN_DAT$INCOME <- NULL
+FIN_DAT$WAGE <- NULL
+FIN_DAT$HR_WORKED <- NULL 
+FIN_DAT$WK_WORKED <- NULL 
+FIN_DAT$born_citizen <- NULL 
+FIN_DAT$naturalized_citizen <- NULL 
+FIN_DAT$not_citizen <- NULL 
+FIN_DAT$NILF <- NULL 
+FIN_DAT$private_sector <- NULL 
+FIN_DAT$gov_sector <- NULL 
+FIN_DAT$self_employed <- NULL 
+FIN_DAT$without_pay <- NULL 
+FIN_DAT$unemployed <- NULL 
+FIN_DAT$under5_english <- NULL 
+FIN_DAT$eng_very_well <- NULL 
+FIN_DAT$eng_well <- NULL 
+FIN_DAT$eng_not_well <- NULL 
+FIN_DAT$eng_none <- NULL 
+FIN_DAT$under5_multi <- NULL 
+FIN_DAT$multilingual <- NULL 
+FIN_DAT$married <- NULL 
+FIN_DAT$widowed <- NULL 
+FIN_DAT$divorced <- NULL 
+FIN_DAT$separated <- NULL 
+FIN_DAT$not_married <- NULL 
+FIN_DAT$single <- NULL
+FIN_DAT$under_5_edu <- NULL 
+FIN_DAT$uncomplete_edu <- NULL 
+FIN_DAT$primary_edu <- NULL 
+FIN_DAT$secondary_edu <- NULL 
+FIN_DAT$secondary_diploma <- NULL 
+FIN_DAT$secondary_complete <- NULL 
+FIN_DAT$GED <- NULL 
+FIN_DAT$some_secondary <- NULL 
+FIN_DAT$associates <- NULL
+FIN_DAT$bachelors <- NULL 
+FIN_DAT$some_college <- NULL 
+FIN_DAT$ masters <- NULL 
+FIN_DAT$professional <- NULL 
+FIN_DAT$doctoral <- NULL 
+FIN_DAT$male <- NULL 
+FIN_DAT$female <- NULL 
+FIN_DAT$disability_dummy <- NULL 
+FIN_DAT$nativity_dummy <- NULL
+FIN_DAT$non_nativity_dummy <- NULL
+FIN_DAT$not_child <- NULL 
+FIN_DAT$not_second <- NULL 
+FIN_DAT$second_gen_dummy <- NULL
+FIN_DAT$white <- NULL
+FIN_DAT$black_african <- NULL
+FIN_DAT$native_indian <- NULL
+FIN_DAT$alaskan_native <- NULL
+FIN_DAT$native_american <- NULL
+FIN_DAT$asian_alone <- NULL
+FIN_DAT$hawaian_alone <- NULL
+FIN_DAT$two_race <- NULL
+FIN_DAT$mixed_race <- NULL
+FIN_DAT$welfare <- NULL
+```
+
+### REMOVE SECOND GEN VARIABLE, OVER 118K NAs
+### REMOVE ENGLISH ABILITY, ~ 90K NAs
+### REMOVE UNEMP, NOT_LB ~ REMOVED BECAUSE DATASET IS LIMITED TO EMPLOYED
+### REMOVING UNDER_EDU, UNDER MULTI ~ LIMITED TO EMPLOYED BECAUSE DATASET IS LIMITED TO EMPLOYED, MINORS UNDER 16 CANNOT LEGALLY BE EMPLOYED
+
+```{r echo = FALSE}
+FIN_DAT$NOT_INLF <- NULL 
+FIN_DAT$UNEMP <- NULL
+FIN_DAT$UNDER_ENG <- NULL
+FIN_DAT$ENG_VW <- NULL
+FIN_DAT$ENG_W <- NULL
+FIN_DAT$ENG_NW <- NULL
+FIN_DAT$ENG_NON <- NULL
+FIN_DAT$UNDER_MULTI <- NULL
+FIN_DAT$UNDER_EDU <- NULL
+FIN_DAT$NOT_CHILD <- NULL
+FIN_DAT$NOT_SEC <- NULL
+FIN_DAT$SEC_GEN <- NULL
+FIN_DAT$HR_WORKED <- NULL
+FIN_DAT$WK_WORKED <- NULL
+FIN_DAT$SUPP_INC <- NULL
+FIN_DAT$SOCIAL_SECURITY <- NULL
+#FIN_DAT$WELFARE <- NULL
+FIN_DAT$NOT_LABOR <- NULL
+FIN_DAT$NON_NATIVE <- NULL
+```
+
+```{r}
+summary(FIN_DAT)
+```
+
+```{r}
+NEW_FIN_DAT <- subset(FIN_DAT, NAT_AMR == 0 & ALASKAN == 0 & INDIGINEOUS == 0 & HAWAIAN == 0)
+```
+
+```{r}
+NEW_FIN_DAT$MULTIRACIAL <- if_else(NEW_FIN_DAT$BI_RACIAL == 1, 1, if_else(NEW_FIN_DAT$MULTI_RACIAL == 1, 1, 0))
+```
+
+```{r}
+NEW_FIN_DAT$BI_RACIAL <- NULL
+NEW_FIN_DAT$MULTI_RACIAL <- NULL
+NEW_FIN_DAT$ NAT_AMR <- NULL
+NEW_FIN_DAT$ALASKAN <- NULL
+NEW_FIN_DAT$INDIGINEOUS <- NULL
+NEW_FIN_DAT$HAWAIAN <- NULL
+```
+
+
+```{r}
+NEW_FIN_DAT$INCOMP_EDU <- NULL
+NEW_FIN_DAT$PRIM_EDU <- NULL
+NEW_FIN_DAT$SEC_INCOMP <- NULL
+NEW_FIN_DAT$GED_EDU <- NULL
+NEW_FIN_DAT$SOME_SEC <- NULL
+NEW_FIN_DAT$SOME_COL <- NULL
+```
+
+```{r}
+NEW_FIN_DAT$AGE_SQR <- (NEW_FIN_DAT$AGE * NEW_FIN_DAT$AGE)
+NEW_FIN_DAT$LOG_EARNINGS <- log(NEW_FIN_DAT$EARNINGS, base = exp(1))
+```
+
+```{r}
+NEW_DAT <- subset(NEW_FIN_DAT, EARNINGS > 1000 & EARNINGS < 463000 & AGE >= 18 & WRK_UNPAID == 0 & WELFARE == 0)
+FEMALE_DAT <- subset(NEW_FIN_DAT, EARNINGS > 1000 & EARNINGS < 463000 & AGE >= 18 & WRK_UNPAID == 0 & FEMALE == 1 & WELFARE == 0)
+MALE_DAT <- subset(NEW_FIN_DAT, EARNINGS > 1000 & EARNINGS < 463000 & AGE >= 18 & WRK_UNPAID == 0 & MALE == 1 & WELFARE == 0)
+```
+
+```{r}
+INTER_DAT <- NEW_DAT
+```
+
+```{r}
+INTER_DAT$AGE_FEM <- (INTER_DAT$AGE * INTER_DAT$FEMALE)
+INTER_DAT$AGE_SQR_FEM <- (INTER_DAT$AGE_SQR * INTER_DAT$FEMALE)
+INTER_DAT$NAT_FEM <- (INTER_DAT$NATIVITY * INTER_DAT$FEMALE)
+INTER_DAT$NAT_AMR_FEM <- (INTER_DAT$NAT_CIT * INTER_DAT$FEMALE)
+
+INTER_DAT$NAT_CIT_FEM <- (INTER_DAT$NAT_CIT * INTER_DAT$FEMALE)
+INTER_DAT$NOT_CIT_FEM <- (INTER_DAT$NOT_CIT * INTER_DAT$FEMALE)
+INTER_DAT$GOV_SEC_FEM <- (INTER_DAT$GOV_SEC * INTER_DAT$FEMALE)
+INTER_DAT$SELF_EMP_FEM <- (INTER_DAT$SELF_EMP * INTER_DAT$FEMALE)
+INTER_DAT$NATIVITY_FEM <- (INTER_DAT$NATIVITY * INTER_DAT$FEMALE)
+
+
+INTER_DAT$MULTILINGUAL_FEM <- (INTER_DAT$MULTILINGUAL * INTER_DAT$FEMALE)
+INTER_DAT$MARRIED_FEM <- (INTER_DAT$MARRIED * INTER_DAT$FEMALE)
+INTER_DAT$DIVORCED_FEM <- (INTER_DAT$DIVORCED * INTER_DAT$FEMALE)
+INTER_DAT$WIDOWED_FEM <- (INTER_DAT$WIDOWED * INTER_DAT$FEMALE)
+INTER_DAT$SEPARATED_FEM <- (INTER_DAT$SEPARATED * INTER_DAT$FEMALE)
+INTER_DAT$SINGLE_FEM <- (INTER_DAT$SINGLE * INTER_DAT$FEMALE)
+
+INTER_DAT$SEC_EDU_FEM <- (INTER_DAT$SEC_EDU * INTER_DAT$FEMALE)
+INTER_DAT$AST_EDU_FEM <- (INTER_DAT$AST_EDU * INTER_DAT$FEMALE)
+INTER_DAT$BACH_EDU_FEM <- (INTER_DAT$BACH_EDU * INTER_DAT$FEMALE)
+INTER_DAT$MAST_EDU_FEM <- (INTER_DAT$MAST_EDU * INTER_DAT$FEMALE)
+INTER_DAT$DOC_EDU_FEM <- (INTER_DAT$DOC_EDU * INTER_DAT$FEMALE)
+INTER_DAT$PROF_EDU_FEM <- (INTER_DAT$PROF_EDU * INTER_DAT$FEMALE)
+INTER_DAT$DISABILITY_FEM <- (INTER_DAT$DISABILITY * INTER_DAT$FEMALE)
+
+INTER_DAT$WHITE_FEM <- (INTER_DAT$WHITE * INTER_DAT$FEMALE)
+INTER_DAT$BLK_AFRI_FEM <- (INTER_DAT$BLK_AFRI * INTER_DAT$FEMALE)
+INTER_DAT$ASIAN_FEM <- (INTER_DAT$NAT_CIT * INTER_DAT$FEMALE)
+INTER_DAT$MULTIRACIAL <- (INTER_DAT$MULTIRACIAL * INTER_DAT$FEMALE)
+```
+
+```{r}
+INTER_DAT$MALE <- NULL
+FEMALE_DAT$MALE <- NULL
+MALE_DAT$FEMALE <- NULL
+```
+
+```{r}
+summary(INTER_DAT)
+```
+
+
+```{r}
+write.csv(NEW_DAT, "C:/Users/Emily/OneDrive/Desktop/Everyday School/Graduate School/Econometrics/LMA Project/NEW_DAT.csv", row.names = FALSE, col.names = TRUE)
+
+write.csv(FIN_DAT, "C:/Users/Emily/OneDrive/Desktop/Everyday School/Graduate School/Econometrics/LMA Project/FIN_DAT.csv", row.names = FALSE, col.names = TRUE)
+
+write.csv(MALE_DAT, "C:/Users/Emily/OneDrive/Desktop/Everyday School/Graduate School/Econometrics/LMA Project/MALE_DAT.csv", row.names = FALSE, col.names = TRUE)
+
+write.csv(FEMALE_DAT, "C:/Users/Emily/OneDrive/Desktop/Everyday School/Graduate School/Econometrics/LMA Project/FEMALE_DAT.csv", row.names = FALSE, col.names = TRUE)
+
+write.csv(INTER_DAT, "C:/Users/Emily/OneDrive/Desktop/Everyday School/Graduate School/Econometrics/LMA Project/INTER_DAT.csv", row.names = FALSE, col.names = TRUE)
+```
+
+
+```{r}
+summary(NEW_DAT)
+```
+
+

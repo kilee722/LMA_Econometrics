@@ -1,0 +1,218 @@
+---
+title: "Final Log Regressions Run with Altered Dataframes R Notebook"
+output: html_notebook
+---
+
+```{r echo = FASLE}
+rm(list=ls(all=TRUE))
+```
+
+```{r setup, include=FALSE, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(stargazer)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+library(robustbase)
+library(mvtnorm)
+library(expsmooth)
+```
+
+```{r}
+MALE_DAT <- read.csv('MALE_DAT.csv')
+FEMALE_DAT <- read.csv('FEMALE_DAT.csv')
+INTER_DAT <- read.csv('INTER_DAT.csv')
+NEW_DAT <- read.csv("NEW_DAT.csv")
+```
+
+```{r}
+log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = NEW_DAT)
+
+summary(log_mod)
+```
+
+```{r}
+bptest(log_mod)
+(diag(vcovHC(log_mod, type = "HC"))^0.5)
+(coef(log_mod))
+```
+
+
+```{r}
+plot(fitted(log_mod), residuals(log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(log_mod)), col = "blue")
+```
+
+```{r}
+log_mod_lin <- lm(LOG_EARNINGS ~ AGE + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = NEW_DAT)
+
+summary(log_mod_lin)
+```
+
+```{r}
+bptest(log_mod_lin)
+(diag(vcovHC(log_mod_lin, type = "HC"))^0.5)
+(coef(log_mod_lin))
+
+```
+
+```{r}
+plot(fitted(log_mod_lin), residuals(log_mod_lin))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(log_mod_lin)), col = "blue")
+```
+
+```{r}
+log_mod_alt <-  lm(LOG_EARNINGS ~ AGE + AGE_SQR + NATIVITY + GOV_SEC + MULTILINGUAL + SINGLE + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = NEW_DAT)
+
+summary(log_mod_alt)
+```
+
+```{r}
+bptest(log_mod_alt)
+(diag(vcovHC(log_mod_alt, type = "HC"))^0.5)
+(coef(log_mod_alt))
+```
+
+```{r}
+plot(fitted(log_mod_alt), residuals(log_mod_alt))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(log_mod_alt)), col = "blue")
+```
+
+```{r}
+mixed_log_mod_alt <-  lm(LOG_EARNINGS ~ AGE + AGE_SQR + NATIVITY + GOV_SEC + MULTILINGUAL + MARRIED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI + ASIAN  + MULTIRACIAL, data = FEMALE_DAT)
+
+summary(female_log_mod_alt)
+```
+
+# female data frame only
+```{r}
+female_log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI +  + ASIAN  + MULTIRACIAL, data = FEMALE_DAT)
+
+summary(female_log_mod)
+```
+
+```{r}
+bptest(female_log_mod)
+(diag(vcovHC(female_log_mod, type = "HC"))^0.5)
+(coef(female_log_mod))
+```
+
+```{r}
+plot(fitted(female_log_mod), residuals(female_log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(female_log_mod)), col = "blue")
+```
+
+```{r}
+female_log_mod_alt <-  lm(LOG_EARNINGS ~ AGE + AGE_SQR + NATIVITY + GOV_SEC + MULTILINGUAL + SINGLE + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI + ASIAN  + MULTIRACIAL, data = FEMALE_DAT)
+
+summary(female_log_mod_alt)
+```
+
+```{r}
+bptest(female_log_mod_alt)
+(diag(vcovHC(female_log_mod_alt, type = "HC"))^0.5)
+(coef(female_log_mod_alt))
+```
+
+```{r}
+plot(fitted(female_log_mod_alt), residuals(female_log_mod_alt))
+abline(h = 0, col = "red")
+```
+
+# male data frame only reression
+```{r}
+male_log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = MALE_DAT)
+
+summary(male_log_mod)
+```
+
+```{r}
+bptest(male_log_mod)
+(diag(vcovHC(male_log_mod, type = "HC"))^0.5)
+(coef(male_log_mod))
+```
+
+```{r}
+plot(fitted(male_log_mod), residuals(male_log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(male_log_mod)), col = "blue")
+```
+
+```{r}
+male_log_mod_alt <-  lm(LOG_EARNINGS ~ AGE + AGE_SQR + NATIVITY + GOV_SEC + MULTILINGUAL + SINGLE + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL, data = MALE_DAT)
+
+summary(male_log_mod_alt)
+```
+
+```{r}
+bptest(male_log_mod_alt)
+(diag(vcovHC(male_log_mod_alt, type = "HC"))^0.5)
+(coef(male_log_mod_alt))
+```
+
+```{r}
+plot(fitted(male_log_mod_alt), residuals(male_log_mod_alt))
+abline(h = 0, col = "red")
+```
+
+# Interaction Variables
+
+```{r}
+interact_log_mod <- lm(LOG_EARNINGS ~ AGE + AGE_SQR + NAT_CIT + NOT_CIT + GOV_SEC + MULTILINGUAL + MARRIED + WIDOWED + DIVORCED + SEPARATED + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL + AGE_FEM + AGE_SQR_FEM + NAT_CIT_FEM + NOT_CIT_FEM + GOV_SEC_FEM + MULTILINGUAL_FEM + MARRIED_FEM + WIDOWED_FEM + DIVORCED_FEM + SEPARATED_FEM + SEC_EDU_FEM + AST_EDU_FEM + BACH_EDU_FEM + MAST_EDU_FEM + PROF_EDU_FEM + DOC_EDU_FEM + DISABILITY_FEM + BLK_AFRI_FEM + ASIAN_FEM  + MULTIRACIAL , data = INTER_DAT)
+
+summary(interact_log_mod)
+```
+
+```{r}
+bptest(interact_log_mod)
+(diag(vcovHC(interact_log_mod, type = "HC"))^0.5)
+(coef(interact_log_mod))
+```
+
+```{r}
+plot(fitted(interact_log_mod), residuals(interact_log_mod))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(interact_log_mod)), col = "blue")
+```
+
+```{r}
+interact_log_mod_alt <-  lm(LOG_EARNINGS ~ AGE + AGE_SQR + NATIVITY + GOV_SEC + MULTILINGUAL + SINGLE + SEC_EDU + AST_EDU + BACH_EDU + MAST_EDU + PROF_EDU + DOC_EDU + FEMALE + DISABILITY + BLK_AFRI + ASIAN + MULTIRACIAL + AGE_FEM + AGE_SQR_FEM + NATIVITY_FEM + GOV_SEC_FEM + MULTILINGUAL_FEM + SINGLE_FEM + SEC_EDU_FEM + AST_EDU_FEM + BACH_EDU_FEM + MAST_EDU_FEM + PROF_EDU_FEM + DOC_EDU_FEM + DISABILITY_FEM + BLK_AFRI_FEM + ASIAN_FEM + MULTIRACIAL, data = INTER_DAT)
+
+summary(interact_log_mod_alt)
+```
+
+```{r}
+bptest(interact_log_mod_alt)
+(diag(vcovHC(interact_log_mod_alt, type = "HC"))^0.5)
+(coef(interact_log_mod_alt))
+```
+
+```{r}
+plot(fitted(interact_log_mod_alt), residuals(interact_log_mod_alt))
+abline(h = 0, col = "red")
+abline(h = mean(fitted(interact_log_mod_alt)), col = "blue")
+```
+```{r}
+stargazer::stargazer(log_mod, female_log_mod, male_log_mod, interact_log_mod, type = "text", digits = 2, column.labels = c("Combined Model", "Female Model", "Male Model", "Interaction Model"), omit.stat = c("f", "ser"), column.sep.width = "-15pt")
+
+```
+
+```{r}
+
+stargazer::stargazer(log_mod_alt, female_log_mod_alt, male_log_mod_alt, interact_log_mod_alt, type = "text", digits = 2, column.labels = c("Combined Model", "Female Model", "Male Model", "Interaction Model"), omit.stat = c("f", "ser"), column.sep.width = "-15pt")
+```
+
+
+
+
+
+
+
