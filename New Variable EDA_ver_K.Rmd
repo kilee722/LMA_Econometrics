@@ -1,0 +1,2388 @@
+---
+title: "New Edited Data EDA"
+output: html_notebook
+---
+
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(stargazer)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+raw_dat <- read.csv('Raw_Project_Data_2.csv')
+```
+
+```{r}
+dummy_dat = data.frame(
+  # citizenship
+  born_citizen = if_else(raw_dat$CITIZENSHIP == 1, 1, if_else(raw_dat$CITIZENSHIP == 2, 1, if_else(raw_dat$CITIZENSHIP == 3, 1, 0))),
+  naturalized_citizen = if_else(raw_dat$CITIZENSHIP == 4, 1, 0),
+  not_citizen = if_else(raw_dat$CITIZENSHIP == 5, 1, 0),
+  
+  # worker classification
+  INLF = if_else(raw_dat$WORKER_CLASS == 'b', 1, 0),
+  private_sector = if_else(raw_dat$WORKER_CLASS == 1, 1, 0),
+  gov_sector = if_else(raw_dat$WORKER_CLASS == 2, 1, if_else(raw_dat$WORKER_CLASS == 3, 1, if_else(raw_dat$WORKER_CLASS == 4, 1, if_else(raw_dat$WORKER_CLASS == 5, 1, 0)))),
+  self_employed = if_else(raw_dat$WORKER_CLASS == 5, 1, if_else(raw_dat$WORKER_CLASS == 6, 1, 0)),
+  without_pay = if_else(raw_dat$WORKER_CLASS == 8, 1, 0),
+  unemployed = if_else(raw_dat$WORKER_CLASS == 9, 1, 0),
+  
+  # ability to speak english
+  under5_english = if_else(raw_dat$ENGLISH_ABILITY == 'b', 1, 0),
+  eng_very_well = if_else(raw_dat$ENGLISH_ABILITY == 1, 1, 0),
+  eng_well = if_else(raw_dat$ENGLISH_ABILITY == 2, 1, 0),
+  eng_not_well = if_else(raw_dat$ENGLISH_ABILITY == 3, 1, 0),
+  eng_none = if_else(raw_dat$ENGLISH_ABILITY == 4, 1, 0),
+  
+  # bi-lingual
+  under5_multi = if_else(raw_dat$OTHER_LANGUAGE == 'b', 1, 0),
+  multilingual = if_else(raw_dat$OTHER_LANGUAGE == 1, 1, 0),
+  
+  # martial status
+  married = if_else(raw_dat$MAR_STATUS == 1, 1, 0),
+  widowed = if_else(raw_dat$MAR_STATUS == 2, 1, 0),
+  divorced = if_else(raw_dat$MAR_STATUS == 3, 1, 0),
+  separated = if_else(raw_dat$MAR_STATUS == 4, 1, 0),
+  single = if_else(raw_dat$MAR_STATUS == 5, 1, 0),
+
+  # educational obtainment
+  under_5_edu = if_else(raw_dat$EDU_LEVEL == 'bb', 1, 0),
+  uncomplete_edu = if_else(raw_dat$EDU_LEVEL == 01, 1, 0),
+  primary_edu = if_else(raw_dat$EDU_LEVEL == 03, 1, if_else(raw_dat$EDU_LEVEL == 04, 1, if_else(raw_dat$EDU_LEVEL == 05, 1, if_else(raw_dat$EDU_LEVEL == 06, 1, if_else(raw_dat$EDU_LEVEL == 07, 1, if_else(raw_dat$EDU_LEVEL == 08, 1, if_else(raw_dat$EDU_LEVEL == 09, 1, if_else(raw_dat$EDU_LEVEL == 10, 1, if_else(raw_dat$EDU_LEVEL == 11, 1, 0))))))))),
+  secondary_edu = if_else(raw_dat$EDU_LEVEL == 15, 1, 0),
+  secondary_diploma = if_else(raw_dat$EDU_LEVEL == 16, 1, 0),
+  secondary_complete = if_else(raw_dat$EDU_LEVEL == 15, 1, if_else(raw_dat$EDU_LEVEL == 16, 1, if_else(raw_dat$EDU_LEVEL == 17, 1, 0))),
+  GED = if_else(raw_dat$EDU_LEVEL == 17, 1,0),
+  some_secondary = if_else(raw_dat$EDU_LEVEL == 12, 1, if_else(raw_dat$EDU_LEVEL == 13, 1,if_else(raw_dat$EDU_LEVEL == 14, 1, if_else(raw_dat$EDU_LEVEL == 15, 1, 0)))),
+  associates = if_else(raw_dat$EDU_LEVEL == 20, 1, 0),
+  bachelors = if_else(raw_dat$EDU_LEVEL == 21, 1, 0),
+  some_college = if_else(raw_dat$EDU_LEVEL == 18, 1, if_else(raw_dat$EDU_LEVEL == 19, 1, 0)),
+  masters = if_else(raw_dat$EDU_LEVEL == 22, 1, 0),
+  professional = if_else(raw_dat$EDU_LEVEL == 23, 1, 0),
+  doctoral = if_else(raw_dat$EDU_LEVEL == 24, 1, 0),
+  
+  # sex
+  male = if_else(raw_dat$SEX == 1, 1, 0),
+  female = if_else(raw_dat$SEX == 2, 1, 0),
+  
+  # disability
+  disability_dummy = if_else(raw_dat$DISABILITY == 1, 1, 0),
+  
+  # nativity
+  nativity_dummy = if_else(raw_dat$NATIVITY == 1, 1, 0),
+  
+  # nativity of parents
+  not_child = if_else(raw_dat$SECOND_GEN == 'b', 1, 0),
+  not_second = if_else(raw_dat$SECOND_GEN == 1, 1, if_else(raw_dat$SECOND_GEN == 5, 1, if_else(raw_dat$SECOND_GEN == 7, 1, 0))),
+  second_gen_dummy = if_else(raw_dat$SECOND_GEN == 2, 1, if_else(raw_dat$SECOND_GEN == 3, 1, if_else(raw_dat$SECOND_GEN == 4, 1, if_else(raw_dat$SECOND_GEN == 6, 1, if_else(raw_dat$SECOND_GEN == 8, 1, 0))))),
+  
+  # race
+  
+  white = if_else(raw_dat$RACE == 1, 1, 0),
+  black_african = if_else(raw_dat$RACE == 2, 1, 0),
+  native_indian = if_else(raw_dat$RACE == 3, 1, 0),
+  alaskan_native = if_else(raw_dat$RACE == 4, 1, 0),
+  native_american = if_else(raw_dat$RACE == 5, 1, 0),
+  asian_alone = if_else(raw_dat$RACE == 6, 1, 0),
+  hawaian_alone = if_else(raw_dat$RACE == 7, 1, 0),
+  two_race = if_else(raw_dat$RACE == 8, 1, 0),
+  mixed_race = if_else(raw_dat$RACE == 9, 1, 0),
+  
+  welfare = if_else(raw_dat$SUPP_INC > 0, 1, if_else(raw_dat$SOCIAL_SECURITY > 0, 1, 0))
+)
+```
+
+```{r}
+FIN_DAT <- dummy_dat
+```
+
+```{r}
+FIN_DAT$SERIAL_NO <- raw_dat$SERIALNO
+FIN_DAT$EARNINGS <- raw_dat$EARNINGS
+FIN_DAT$INCOME <- raw_dat$INCOME
+FIN_DAT$WAGE <- raw_dat$WAGE
+FIN_DAT$AGE <- raw_dat$AGE
+FIN_DAT$SUPP_INC <- raw_dat$SUPP_INC 
+FIN_DAT$SOCIAL_SECURITY <- raw_dat$SOCIAL_SECURITY 
+FIN_DAT$HR_WORKED <- raw_dat$HOURS_WORKED 
+FIN_DAT$WK_WORKED <- raw_dat$WEEKS_WORKED 
+
+```
+
+```{r}
+FIN_DAT$SERIAL_NO <- FIN_DAT$SERIAL_NO
+FIN_DAT$EARNINGS <- FIN_DAT$EARNINGS
+FIN_DAT$INCOME <- FIN_DAT$INCOME
+FIN_DAT$WAGE <- FIN_DAT$WAGE
+FIN_DAT$AGE <- FIN_DAT$AGE 
+FIN_DAT$SUPP_INC <- FIN_DAT$SUPP_INC 
+FIN_DAT$SOCIAL_SECURITY <- FIN_DAT$SOCIAL_SECURITY 
+FIN_DAT$HR_WORKED <- FIN_DAT$HR_WORKED
+FIN_DAT$WK_WORKED <- FIN_DAT$WK_WORKED 
+FIN_DAT$B_CIT <- FIN_DAT$born_citizen 
+FIN_DAT$NAT_CIT <- FIN_DAT$naturalized_citizen 
+FIN_DAT$NOT_CIT <- FIN_DAT$not_citizen 
+FIN_DAT$NOT_LB <- FIN_DAT$INLF 
+FIN_DAT$PRI_SEC <- FIN_DAT$private_sector 
+FIN_DAT$GOV_SEC <- FIN_DAT$gov_sector 
+FIN_DAT$SELF_EMP <- FIN_DAT$self_employed 
+FIN_DAT$WRK_UNPAID <- FIN_DAT$without_pay 
+FIN_DAT$UNEMP <- FIN_DAT$unemployed 
+FIN_DAT$UNDER_ENG <- FIN_DAT$under5_english 
+FIN_DAT$ENG_VW <- FIN_DAT$ eng_very_well 
+FIN_DAT$ENG_W <- FIN_DAT$eng_well 
+FIN_DAT$ENG_NW <- FIN_DAT$eng_not_well 
+FIN_DAT$ENG_NON <- FIN_DAT$eng_none 
+FIN_DAT$UNDER_MULTI <- FIN_DAT$under5_multi 
+FIN_DAT$MULTI <- FIN_DAT$ multilingual 
+FIN_DAT$MARRIED <- FIN_DAT$ married 
+FIN_DAT$WIDOWED <- FIN_DAT$widowed 
+FIN_DAT$DIVORCED <- FIN_DAT$divorced 
+FIN_DAT$SEPARATED <- FIN_DAT$separated 
+FIN_DAT$NOT_MARRIED <- FIN_DAT$not_married 
+FIN_DAT$SINGLE <- FIN_DAT$single
+FIN_DAT$UNDER_EDU <- FIN_DAT$under_5_edu 
+FIN_DAT$INCOMP_EDU <- FIN_DAT$uncomplete_edu 
+FIN_DAT$PRIM_EDU <- FIN_DAT$primary_edu 
+FIN_DAT$SEC_INCOMP <- FIN_DAT$secondary_edu 
+FIN_DAT$SEC_DIP <- FIN_DAT$secondary_diploma 
+FIN_DAT$SEC_EDU <- FIN_DAT$secondary_complete 
+FIN_DAT$GED_EDU <- FIN_DAT$GED 
+FIN_DAT$SOME_SEC <- FIN_DAT$some_secondary 
+FIN_DAT$AST_EDU <- FIN_DAT$associates
+FIN_DAT$BACH_EDU <- FIN_DAT$bachelors 
+FIN_DAT$SOME_COL <- FIN_DAT$some_college 
+FIN_DAT$MAST_EDU <- FIN_DAT$ masters 
+FIN_DAT$PROF_EDU <- FIN_DAT$professional 
+FIN_DAT$DOC_EDU <- FIN_DAT$doctoral 
+FIN_DAT$MALE <- FIN_DAT$male 
+FIN_DAT$FEMALE <- FIN_DAT$female 
+FIN_DAT$DISABILITY <- FIN_DAT$disability_dummy 
+FIN_DAT$NATIVITY <- FIN_DAT$nativity_dummy 
+FIN_DAT$NOT_CHILD <- FIN_DAT$not_child 
+FIN_DAT$NOT_SEC <- FIN_DAT$not_second 
+FIN_DAT$SEC_GEN <- FIN_DAT$second_gen_dummy
+FIN_DAT$WHITE <- FIN_DAT$white
+FIN_DAT$BLK_AFRI <- FIN_DAT$black_african
+FIN_DAT$NAT_AMR <- FIN_DAT$native_indian
+FIN_DAT$ALASKAN <- FIN_DAT$alaskan_native
+FIN_DAT$INDIGINEOUS <- FIN_DAT$native_american
+FIN_DAT$ASIAN <- FIN_DAT$asian_alone
+FIN_DAT$HAWAIAN <- FIN_DAT$hawaian_alone
+FIN_DAT$BI_RACIAL <- FIN_DAT$two_race
+FIN_DAT$MULTI_RACIAL <- FIN_DAT$mixed_race
+FIN_DAT$WELFARE <- FIN_DAT$welfare
+```
+
+```{r}
+NEW_DAT <- FIN_DAT
+```
+
+```{r}
+NEW_DAT$INCOME <- NULL
+NEW_DAT$WAGE <- NULL
+NEW_DAT$HOURS_WORKED <- NULL 
+NEW_DAT$WEEKS_WORKED <- NULL 
+NEW_DAT$born_citizen <- NULL 
+NEW_DAT$naturalized_citizen <- NULL 
+NEW_DAT$not_citizen <- NULL 
+NEW_DAT$INLF <- NULL 
+NEW_DAT$private_sector <- NULL 
+NEW_DAT$gov_sector <- NULL 
+NEW_DAT$self_employed <- NULL 
+NEW_DAT$without_pay <- NULL 
+NEW_DAT$unemployed <- NULL 
+NEW_DAT$under5_english <- NULL 
+NEW_DAT$ eng_very_well <- NULL 
+NEW_DAT$eng_well <- NULL 
+NEW_DAT$eng_not_well <- NULL 
+NEW_DAT$eng_none <- NULL 
+NEW_DAT$under5_multi <- NULL 
+NEW_DAT$multilingual <- NULL 
+NEW_DAT$married <- NULL 
+NEW_DAT$widowed <- NULL 
+NEW_DAT$divorced <- NULL 
+NEW_DAT$separated <- NULL 
+NEW_DAT$not_married <- NULL 
+NEW_DAT$single <- NULL
+NEW_DAT$under_5_edu <- NULL 
+NEW_DAT$uncomplete_edu <- NULL 
+NEW_DAT$primary_edu <- NULL 
+NEW_DAT$secondary_edu <- NULL 
+NEW_DAT$secondary_diploma <- NULL 
+NEW_DAT$secondary_complete <- NULL 
+NEW_DAT$GED <- NULL 
+NEW_DAT$some_secondary <- NULL 
+NEW_DAT$associates <- NULL
+NEW_DAT$bachelors <- NULL 
+NEW_DAT$some_college <- NULL 
+NEW_DAT$ masters <- NULL 
+NEW_DAT$professional <- NULL 
+NEW_DAT$doctoral <- NULL 
+NEW_DAT$male <- NULL 
+NEW_DAT$female <- NULL 
+NEW_DAT$disability_dummy <- NULL 
+NEW_DAT$nativity_dummy <- NULL 
+NEW_DAT$not_child <- NULL 
+NEW_DAT$not_second <- NULL 
+NEW_DAT$second_gen_dummy <- NULL
+NEW_DAT$white <- NULL
+NEW_DAT$black_african <- NULL
+NEW_DAT$native_indian <- NULL
+NEW_DAT$alaskan_native <- NULL
+NEW_DAT$native_american <- NULL
+NEW_DAT$asian_alone <- NULL
+NEW_DAT$hawaian_alone <- NULL
+NEW_DAT$two_race <- NULL
+NEW_DAT$mixed_race <- NULL
+NEW_DAT$welfare <- NULL
+```
+
+### REMOVE SECOND GEN VARIABLE, OVER 118K NAs
+### REMOVE ENGLISH ABILITY, ~ 90K NAs
+### REMOVE UNEMP, NOT_LB ~ REMOVED BECAUSE DATASET IS LIMITED TO EMPLOYED
+### REMOVING UNDER_EDU, UNDER MULTI ~ LIMITED TO EMPLOYED BECAUSE DATASET IS LIMITED TO EMPLOYED, MINORS UNDER 16 CANNOT LEGALLY BE EMPLOYED
+
+```{r}
+NEW_DAT$NOT_LB <- NULL 
+NEW_DAT$UNEMP <- NULL
+NEW_DAT$UNDER_ENG <- NULL
+NEW_DAT$ENG_VW <- NULL
+NEW_DAT$ENG_W <- NULL
+NEW_DAT$ENG_NW <- NULL
+NEW_DAT$ENG_NON <- NULL
+NEW_DAT$UNDER_MULTI <- NULL
+NEW_DAT$UNDER_EDU <- NULL
+NEW_DAT$NOT_CHILD <- NULL
+NEW_DAT$NOT_SEC <- NULL
+NEW_DAT$SEC_GEN <- NULL
+```
+
+### IMPOSING LIMITING CRITERIA TO STUDY ONLY EMPLOYED AND ADULT SEGEMENT OF LABOR FORCE
+
+```{r}
+RAW_LIMITED <- subset(raw_dat, EARNINGS > 0 & EARNINGS < 463000 & AGE >= 18)
+
+NEW_DAT <- subset(NEW_DAT, EARNINGS > 0 & EARNINGS < 463000 & AGE >= 18)
+
+```
+
+```{r}
+gazer_raw <- raw_dat
+gazer_lim <- RAW_LIMITED
+gazer_new <- NEW_DAT
+```
+
+```{r}
+gazer_raw$SERIALNO <- NULL
+gazer_lim$SERIALNO <- NULL
+gazer_new$SERIAL_NO <- NULL
+```
+
+
+```{r}
+stargazer(gazer_raw, type = "text", title = "Raw Texas Data Statistical Summary", colnames = TRUE, mean.sd = TRUE, median = TRUE, min.max = TRUE)
+
+stargazer(gazer_lim, type = "text", title = "Limited Texas Data Statistical Summary", colnames = TRUE, mean.sd = TRUE, median = TRUE, min.max = TRUE)
+
+stargazer(gazer_new, type = "text", title = "New Texas Data Statistical Summary", colnames = TRUE, mean.sd = TRUE, median = TRUE, min.max = TRUE)
+
+```
+
+```{r}
+attach(NEW_DAT)
+```
+
+```{r}
+colnames(NEW_DAT)
+colnames(RAW_LIMITED)
+```
+
+
+```{r}
+qplot(EARNINGS,
+      geom="histogram",
+      binwidth = 10000,  
+      main = "Histogram for EARNINGS", 
+      xlab = "EARNINGS",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(EARNINGS,
+  main = "EARNINGS",
+  xlab = "Count",
+  ylab = "EARNINGS",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(EARNINGS), 
+     main="EARNINGS DISTRIBUTION")
+polygon(density(EARNINGS), col="pink", border="blue")
+
+plot(EARNINGS)
+
+
+```
+
+# --------------------NEW_DAT----------------
+* AGE vs EARNINGS
+```{r}
+qplot(AGE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for Age", 
+      xlab = "Age",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(AGE,
+  main = "Age",
+  xlab = "Count",
+  ylab = "Age",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(AGE), 
+     main="AGE DISTRIBUTION")
+polygon(density(AGE), col="pink", border="blue")
+
+
+plot(AGE, EARNINGS)
+```
+
+* 
+```{R}
+colnames(NEW_DAT)
+```
+* SUPP_INC vs EARNINGS
+```{r}
+qplot(SUPP_INC,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SUPP_INC", 
+      xlab = "SUPP_INC",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SUPP_INC,
+  main = "SUPP_INC",
+  xlab = "Count",
+  ylab = "SUPP_INC",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SUPP_INC), 
+     main="SUPP_INC DISTRIBUTION")
+polygon(density(SUPP_INC), col="pink", border="blue")
+
+
+plot(SUPP_INC, EARNINGS)
+```
+* SOCIAL_SECURITY vs EARNINGS
+```{r}
+qplot(SOCIAL_SECURITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SOCIAL_SECURITY", 
+      xlab = "SOCIAL_SECURITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SOCIAL_SECURITY,
+  main = "SOCIAL_SECURITY",
+  xlab = "Count",
+  ylab = "SOCIAL_SECURITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SOCIAL_SECURITY), 
+     main="SOCIAL_SECURITY DISTRIBUTION")
+polygon(density(SOCIAL_SECURITY), col="pink", border="blue")
+
+
+plot(SOCIAL_SECURITY, EARNINGS)
+```
+
+* HR_WORKED vs EARNINGS
+```{r}
+qplot(HR_WORKED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for HR_WORKED", 
+      xlab = "HR_WORKED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(HR_WORKED,
+  main = "HR_WORKED",
+  xlab = "Count",
+  ylab = "HR_WORKED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(HR_WORKED), 
+     main="HR_WORKED DISTRIBUTION")
+polygon(density(HR_WORKED), col="pink", border="blue")
+
+
+plot(HR_WORKED, EARNINGS)
+```
+* WK_WORKED vs EARNINGS
+```{r}
+qplot(WK_WORKED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WK_WORKED", 
+      xlab = "WK_WORKED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(WK_WORKED,
+  main = "WK_WORKED",
+  xlab = "Count",
+  ylab = "WK_WORKED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(WK_WORKED), 
+     main="WK_WORKED DISTRIBUTION")
+polygon(density(WK_WORKED), col="pink", border="blue")
+
+
+plot(WK_WORKED, EARNINGS)
+```
+* B_CIT vs EARNINGS
+```{r}
+qplot(B_CIT,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for B_CIT", 
+      xlab = "B_CIT",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(B_CIT,
+  main = "B_CIT",
+  xlab = "Count",
+  ylab = "B_CIT",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(B_CIT), 
+     main="B_CIT DISTRIBUTION")
+polygon(density(B_CIT), col="pink", border="blue")
+
+
+plot(B_CIT, EARNINGS)
+```
+* NAT_CIT vs EARNINGS
+```{r}
+qplot(NAT_CIT,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for NAT_CIT", 
+      xlab = "NAT_CIT",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(NAT_CIT,
+  main = "NAT_CIT",
+  xlab = "Count",
+  ylab = "NAT_CIT",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(NAT_CIT), 
+     main="NAT_CIT DISTRIBUTION")
+polygon(density(NAT_CIT), col="pink", border="blue")
+
+
+plot(NAT_CIT, EARNINGS)
+```
+
+* NOT_CIT vs EARNINGS
+
+```{r}
+qplot(NOT_CIT,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for NOT_CIT", 
+      xlab = "NOT_CIT",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(NOT_CIT,
+  main = "NOT_CIT",
+  xlab = "Count",
+  ylab = "NOT_CIT",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(NOT_CIT), 
+     main="NOT_CIT DISTRIBUTION")
+polygon(density(NOT_CIT), col="pink", border="blue")
+
+
+plot(NOT_CIT, EARNINGS)
+```
+
+* PRI_SEC
+
+```{r}
+qplot(PRI_SEC,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for PRI_SEC", 
+      xlab = "PRI_SEC",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(PRI_SEC,
+  main = "PRI_SEC",
+  xlab = "Count",
+  ylab = "PRI_SEC",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(PRI_SEC), 
+     main="PRI_SEC DISTRIBUTION")
+polygon(density(PRI_SEC), col="pink", border="blue")
+
+
+plot(PRI_SEC, EARNINGS)
+```
+
+* GOV_SEC
+```{r}
+qplot(GOV_SEC,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for GOV_SEC", 
+      xlab = "GOV_SEC",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(GOV_SEC,
+  main = "GOV_SEC",
+  xlab = "Count",
+  ylab = "GOV_SEC",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(GOV_SEC), 
+     main="GOV_SEC DISTRIBUTION")
+polygon(density(GOV_SEC), col="pink", border="blue")
+
+
+plot(GOV_SEC, EARNINGS)
+```
+* SELF_EMP
+```{r}
+qplot(SELF_EMP,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SELF_EMP", 
+      xlab = "SELF_EMP",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SELF_EMP,
+  main = "SELF_EMP",
+  xlab = "Count",
+  ylab = "SELF_EMP",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SELF_EMP), 
+     main="SELF_EMP DISTRIBUTION")
+polygon(density(SELF_EMP), col="pink", border="blue")
+
+
+plot(SELF_EMP, EARNINGS)
+```
+
+* WRK_UNPAID
+```{r}
+qplot(WRK_UNPAID,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WRK_UNPAID", 
+      xlab = "WRK_UNPAID",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(WRK_UNPAID,
+  main = "WRK_UNPAID",
+  xlab = "Count",
+  ylab = "WRK_UNPAID",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(WRK_UNPAID), 
+     main="WRK_UNPAID DISTRIBUTION")
+polygon(density(WRK_UNPAID), col="pink", border="blue")
+
+
+plot(WRK_UNPAID, EARNINGS)
+```
+* MULTI
+```{r}
+qplot(MULTI,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for MULTI", 
+      xlab = "MULTI",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(MULTI,
+  main = "MULTI",
+  xlab = "Count",
+  ylab = "MULTI",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(MULTI), 
+     main="MULTI DISTRIBUTION")
+polygon(density(MULTI), col="pink", border="blue")
+
+
+plot(MULTI, EARNINGS)
+```
+
+* MARRIED
+```{r}
+qplot(MARRIED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for MARRIED", 
+      xlab = "MARRIED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(MARRIED,
+  main = "MARRIED",
+  xlab = "Count",
+  ylab = "MARRIED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(MARRIED), 
+     main="MARRIED DISTRIBUTION")
+polygon(density(MARRIED), col="pink", border="blue")
+
+
+plot(MARRIED, EARNINGS)
+```
+
+* WIDOWED
+```{r}
+qplot(WIDOWED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WIDOWED", 
+      xlab = "WIDOWED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(WIDOWED,
+  main = "WIDOWED",
+  xlab = "Count",
+  ylab = "WIDOWED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(WIDOWED), 
+     main="WIDOWED DISTRIBUTION")
+polygon(density(WIDOWED), col="pink", border="blue")
+
+
+plot(WIDOWED, EARNINGS)
+```
+* DIVORCED
+
+```{r}
+qplot(DIVORCED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for DIVORCED", 
+      xlab = "DIVORCED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(DIVORCED,
+  main = "DIVORCED",
+  xlab = "Count",
+  ylab = "DIVORCED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(DIVORCED), 
+     main="DIVORCED DISTRIBUTION")
+polygon(density(DIVORCED), col="pink", border="blue")
+
+
+plot(DIVORCED, EARNINGS)
+```
+* SEPARATED
+
+```{r}
+qplot(SEPARATED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SEPARATED", 
+      xlab = "SEPARATED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SEPARATED,
+  main = "SEPARATED",
+  xlab = "Count",
+  ylab = "SEPARATED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SEPARATED), 
+     main="SEPARATED DISTRIBUTION")
+polygon(density(SEPARATED), col="pink", border="blue")
+
+
+plot(SEPARATED, EARNINGS)
+```
+
+
+* SINGLE
+
+```{r}
+qplot(SINGLE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SINGLE", 
+      xlab = "SINGLE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SINGLE,
+  main = "SINGLE",
+  xlab = "Count",
+  ylab = "SINGLE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SINGLE), 
+     main="SINGLE DISTRIBUTION")
+polygon(density(SINGLE), col="pink", border="blue")
+
+
+plot(SINGLE, EARNINGS)
+```
+
+* INCOMP_EDU
+```{r}
+qplot(INCOMP_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for INCOMP_EDU", 
+      xlab = "INCOMP_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(INCOMP_EDU,
+  main = "INCOMP_EDU",
+  xlab = "Count",
+  ylab = "INCOMP_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(INCOMP_EDU), 
+     main="INCOMP_EDU DISTRIBUTION")
+polygon(density(INCOMP_EDU), col="pink", border="blue")
+
+
+plot(INCOMP_EDU, EARNINGS)
+```
+
+* PRIM_EDU
+
+```{r}
+qplot(PRIM_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for PRIM_EDU", 
+      xlab = "PRIM_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(PRIM_EDU,
+  main = "PRIM_EDU",
+  xlab = "Count",
+  ylab = "PRIM_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(PRIM_EDU), 
+     main="PRIM_EDU DISTRIBUTION")
+polygon(density(PRIM_EDU), col="pink", border="blue")
+
+
+plot(PRIM_EDU, EARNINGS)
+```
+
+* SEC_INCOMP
+```{r}
+qplot(SEC_INCOMP,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SEC_INCOMP", 
+      xlab = "SEC_INCOMP",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SEC_INCOMP,
+  main = "SEC_INCOMP",
+  xlab = "Count",
+  ylab = "SEC_INCOMP",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SEC_INCOMP), 
+     main="SEC_INCOMP DISTRIBUTION")
+polygon(density(SEC_INCOMP), col="pink", border="blue")
+
+
+plot(SEC_INCOMP, EARNINGS)
+```
+
+
+* SEC_DIP
+```{r}
+qplot(SEC_DIP,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SEC_DIP", 
+      xlab = "SEC_DIP",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SEC_DIP,
+  main = "SEC_DIP",
+  xlab = "Count",
+  ylab = "SEC_DIP",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SEC_DIP), 
+     main="SEC_DIP DISTRIBUTION")
+polygon(density(SEC_DIP), col="pink", border="blue")
+
+
+plot(SEC_DIP, EARNINGS)
+```
+
+* SEC_EDU
+```{r}
+qplot(SEC_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SEC_EDU", 
+      xlab = "SEC_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SEC_EDU,
+  main = "SEC_EDU",
+  xlab = "Count",
+  ylab = "SEC_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SEC_EDU), 
+     main="SEC_EDU DISTRIBUTION")
+polygon(density(SEC_EDU), col="pink", border="blue")
+
+
+plot(SEC_EDU, EARNINGS)
+```
+
+* GED_EDU
+```{r}
+qplot(GED_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for GED_EDU", 
+      xlab = "GED_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(GED_EDU,
+  main = "GED_EDU",
+  xlab = "Count",
+  ylab = "GED_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(GED_EDU), 
+     main="GED_EDU DISTRIBUTION")
+polygon(density(GED_EDU), col="pink", border="blue")
+
+
+plot(GED_EDU, EARNINGS)
+```
+
+* SOME_SEC
+```{r}
+qplot(SOME_SEC,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SOME_SEC", 
+      xlab = "SOME_SEC",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SOME_SEC,
+  main = "SOME_SEC",
+  xlab = "Count",
+  ylab = "SOME_SEC",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SOME_SEC), 
+     main="SOME_SEC DISTRIBUTION")
+polygon(density(SOME_SEC), col="pink", border="blue")
+
+
+plot(SOME_SEC, EARNINGS)
+```
+
+* AST_EDU
+```{r}
+qplot(AST_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for AST_EDU", 
+      xlab = "AST_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(AST_EDU,
+  main = "AST_EDU",
+  xlab = "Count",
+  ylab = "AST_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(AST_EDU), 
+     main="AST_EDU DISTRIBUTION")
+polygon(density(AST_EDU), col="pink", border="blue")
+
+
+plot(AST_EDU, EARNINGS)
+```
+
+* BACH_EDU
+```{r}
+qplot(BACH_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for BACH_EDU", 
+      xlab = "BACH_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(BACH_EDU,
+  main = "BACH_EDU",
+  xlab = "Count",
+  ylab = "BACH_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(BACH_EDU), 
+     main="BACH_EDU DISTRIBUTION")
+polygon(density(BACH_EDU), col="pink", border="blue")
+
+
+plot(BACH_EDU, EARNINGS)
+```
+* SOME_COL
+```{r}
+qplot(SOME_COL,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SOME_COL", 
+      xlab = "SOME_COL",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(SOME_COL,
+  main = "SOME_COL",
+  xlab = "Count",
+  ylab = "SOME_COL",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(SOME_COL), 
+     main="SOME_COL DISTRIBUTION")
+polygon(density(SOME_COL), col="pink", border="blue")
+
+
+plot(SOME_COL, EARNINGS)
+```
+* MAST_EDU
+
+```{r}
+qplot(MAST_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for MAST_EDU", 
+      xlab = "MAST_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(MAST_EDU,
+  main = "MAST_EDU",
+  xlab = "Count",
+  ylab = "MAST_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(MAST_EDU), 
+     main="MAST_EDU DISTRIBUTION")
+polygon(density(MAST_EDU), col="pink", border="blue")
+
+
+plot(MAST_EDU, EARNINGS)
+```
+
+* PROF_EDU
+```{r}
+qplot(PROF_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for PROF_EDU", 
+      xlab = "PROF_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(PROF_EDU,
+  main = "PROF_EDU",
+  xlab = "Count",
+  ylab = "PROF_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(PROF_EDU), 
+     main="PROF_EDU DISTRIBUTION")
+polygon(density(PROF_EDU), col="pink", border="blue")
+
+
+plot(PROF_EDU, EARNINGS)
+```
+
+* DOC_EDU
+```{r}
+qplot(DOC_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for DOC_EDU", 
+      xlab = "DOC_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(DOC_EDU,
+  main = "DOC_EDU",
+  xlab = "Count",
+  ylab = "DOC_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(DOC_EDU), 
+     main="DOC_EDU DISTRIBUTION")
+polygon(density(DOC_EDU), col="pink", border="blue")
+
+
+plot(DOC_EDU, EARNINGS)
+```
+
+* DOC_EDU
+```{r}
+qplot(DOC_EDU,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for DOC_EDU", 
+      xlab = "DOC_EDU",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(DOC_EDU,
+  main = "DOC_EDU",
+  xlab = "Count",
+  ylab = "DOC_EDU",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(DOC_EDU), 
+     main="DOC_EDU DISTRIBUTION")
+polygon(density(DOC_EDU), col="pink", border="blue")
+
+
+plot(DOC_EDU, EARNINGS)
+```
+
+* MALE
+```{r}
+qplot(MALE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for MALE", 
+      xlab = "MALE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(MALE,
+  main = "MALE",
+  xlab = "Count",
+  ylab = "MALE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(MALE), 
+     main="MALE DISTRIBUTION")
+polygon(density(MALE), col="pink", border="blue")
+
+
+plot(MALE, EARNINGS)
+```
+
+* FEMALE
+```{r}
+qplot(FEMALE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for FEMALE", 
+      xlab = "FEMALE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(FEMALE,
+  main = "FEMALE",
+  xlab = "Count",
+  ylab = "FEMALE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(FEMALE), 
+     main="DOC_EDU DISTRIBUTION")
+polygon(density(FEMALE), col="pink", border="blue")
+
+
+plot(FEMALE, EARNINGS)
+```
+
+* DISABILITY
+```{r}
+qplot(DISABILITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for DISABILITY", 
+      xlab = "DISABILITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(DISABILITY,
+  main = "DISABILITY",
+  xlab = "Count",
+  ylab = "DISABILITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(DISABILITY), 
+     main="DISABILITY DISTRIBUTION")
+polygon(density(DISABILITY), col="pink", border="blue")
+
+
+plot(DISABILITY, EARNINGS)
+```
+
+* NATIVITY
+```{r}
+qplot(NATIVITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for NATIVITY", 
+      xlab = "NATIVITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(NATIVITY,
+  main = "NATIVITY",
+  xlab = "Count",
+  ylab = "NATIVITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(NATIVITY), 
+     main="NATIVITY DISTRIBUTION")
+polygon(density(NATIVITY), col="pink", border="blue")
+
+
+plot(NATIVITY, EARNINGS)
+```
+
+* WHITE
+```{r}
+qplot(WHITE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WHITE", 
+      xlab = "WHITE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(WHITE,
+  main = "WHITE",
+  xlab = "Count",
+  ylab = "WHITE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(WHITE), 
+     main="WHITE DISTRIBUTION")
+polygon(density(WHITE), col="pink", border="blue")
+
+
+plot(WHITE, EARNINGS)
+```
+
+* BLK_AFRI
+```{r}
+qplot(BLK_AFRI,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for BLK_AFRI", 
+      xlab = "BLK_AFRI",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(BLK_AFRI,
+  main = "BLK_AFRI",
+  xlab = "Count",
+  ylab = "BLK_AFRI",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(BLK_AFRI), 
+     main="BLK_AFRI DISTRIBUTION")
+polygon(density(BLK_AFRI), col="pink", border="blue")
+
+
+plot(BLK_AFRI, EARNINGS)
+```
+
+* NAT_AMR
+```{r}
+qplot(NAT_AMR,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for NAT_AMR", 
+      xlab = "NAT_AMR",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(NAT_AMR,
+  main = "NAT_AMR",
+  xlab = "Count",
+  ylab = "NAT_AMR",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(NAT_AMR), 
+     main="NAT_AMR DISTRIBUTION")
+polygon(density(NAT_AMR), col="pink", border="blue")
+
+
+plot(NAT_AMR, EARNINGS)
+```
+
+* ALASKAN
+```{r}
+qplot(ALASKAN,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for ALASKAN", 
+      xlab = "ALASKAN",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(ALASKAN,
+  main = "ALASKAN",
+  xlab = "Count",
+  ylab = "ALASKAN",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(ALASKAN), 
+     main="ALASKAN DISTRIBUTION")
+polygon(density(ALASKAN), col="pink", border="blue")
+
+
+plot(ALASKAN, EARNINGS)
+```
+
+* INDIGINEOUS
+```{r}
+qplot(INDIGINEOUS,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for INDIGINEOUS", 
+      xlab = "INDIGINEOUS",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(INDIGINEOUS,
+  main = "INDIGINEOUS",
+  xlab = "Count",
+  ylab = "INDIGINEOUS",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(INDIGINEOUS), 
+     main="INDIGINEOUS DISTRIBUTION")
+polygon(density(INDIGINEOUS), col="pink", border="blue")
+
+
+plot(INDIGINEOUS, EARNINGS)
+```
+
+* ASIAN
+```{r}
+qplot(ASIAN,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for ASIAN", 
+      xlab = "ASIAN",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(ASIAN,
+  main = "ASIAN",
+  xlab = "Count",
+  ylab = "ASIAN",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(ASIAN), 
+     main="ASIAN DISTRIBUTION")
+polygon(density(ASIAN), col="pink", border="blue")
+
+
+plot(ASIAN, EARNINGS)
+```
+
+* HAWAIAN
+```{r}
+qplot(HAWAIAN,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for HAWAIAN", 
+      xlab = "HAWAIAN",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(HAWAIAN,
+  main = "HAWAIAN",
+  xlab = "Count",
+  ylab = "HAWAIAN",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(HAWAIAN), 
+     main="HAWAIAN DISTRIBUTION")
+polygon(density(HAWAIAN), col="pink", border="blue")
+
+
+plot(HAWAIAN, EARNINGS)
+```
+
+* BI_RACIAL
+```{r}
+qplot(BI_RACIAL,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for BI_RACIAL", 
+      xlab = "BI_RACIAL",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(BI_RACIAL,
+  main = "BI_RACIAL",
+  xlab = "Count",
+  ylab = "BI_RACIAL",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(BI_RACIAL), 
+     main="BI_RACIAL DISTRIBUTION")
+polygon(density(BI_RACIAL), col="pink", border="blue")
+
+
+plot(BI_RACIAL, EARNINGS)
+```
+
+* MULTI_RACIAL
+```{r}
+qplot(MULTI_RACIAL,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for MULTI_RACIAL", 
+      xlab = "MULTI_RACIAL",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(MULTI_RACIAL,
+  main = "MULTI_RACIAL",
+  xlab = "Count",
+  ylab = "MULTI_RACIAL",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(MULTI_RACIAL), 
+     main="MULTI_RACIAL DISTRIBUTION")
+polygon(density(MULTI_RACIAL), col="pink", border="blue")
+
+
+plot(MULTI_RACIAL, EARNINGS)
+```
+
+* WELFARE
+```{r}
+qplot(WELFARE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WELFARE", 
+      xlab = "WELFARE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(WELFARE,
+  main = "WELFARE",
+  xlab = "Count",
+  ylab = "WELFARE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(WELFARE), 
+     main="WELFARE DISTRIBUTION")
+polygon(density(WELFARE), col="pink", border="blue")
+
+
+plot(WELFARE, EARNINGS)
+```
+
+# ----------------------RAW_LIMITED---------------------
+```{r}
+colnames(RAW_LIMITED)
+```
+* RT
+```{r}
+qplot(RAW_LIMITED$RT,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for RT", 
+      xlab = "RT", 
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$RT,
+  main = "RT",
+  xlab = "Count",
+  ylab = "RT",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$RT), 
+     main="RT DISTRIBUTION")
+polygon(density(RT), col="pink", border="blue")
+
+
+plot(RT, EARNINGS)
+```
+
+* SERIALNO
+```{r}
+qplot(RAW_LIMITED$SERIALNO,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for DOC_EDU", 
+      xlab = "SERIALNO",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$SERIALNO,
+  main = "SERIALNO",
+  xlab = "Count",
+  ylab = "SERIALNO",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$SERIALNO), 
+     main="SERIALNO DISTRIBUTION")
+polygon(density(RAW_LIMITED$SERIALNO), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$SERIALNO, RAW_LIMITED$EARNINGS)
+```
+
+* AGE
+```{r}
+qplot(RAW_LIMITED$AGE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for AGE", 
+      xlab = "AGE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$AGE,
+  main = "AGE",
+  xlab = "Count",
+  ylab = "AGE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$AGE), 
+     main="AGE DISTRIBUTION")
+polygon(density(RAW_LIMITED$AGE), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$AGE, RAW_LIMITED$EARNINGS)
+```
+
+* CITIZENSHIP
+```{r}
+qplot(RAW_LIMITED$CITIZENSHIP,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for CITIZENSHIP", 
+      xlab = "CITIZENSHIP",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$CITIZENSHIP,
+  main = "CITIZENSHIP",
+  xlab = "Count",
+  ylab = "CITIZENSHIP",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$CITIZENSHIP), 
+     main="CITIZENSHIP DISTRIBUTION")
+polygon(density(RAW_LIMITED$CITIZENSHIP), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$CITIZENSHIP, RAW_LIMITED$EARNINGS)
+```
+
+* WORKER_CLASS
+```{r}
+qplot(RAW_LIMITED$WORKER_CLASS,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WORKER_CLASS", 
+      xlab = "WORKER_CLASS",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$WORKER_CLASS,
+  main = "WORKER_CLASS",
+  xlab = "Count",
+  ylab = "WORKER_CLASS",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$WORKER_CLASS), 
+     main="WORKER_CLASS DISTRIBUTION")
+polygon(density(RAW_LIMITED$WORKER_CLASS), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$WORKER_CLASS, RAW_LIMITED$EARNINGS)
+```
+
+* ENGLISH_ABILITY
+```{r}
+qplot(RAW_LIMITED$ENGLISH_ABILITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for ENGLISH_ABILITY", 
+      xlab = "ENGLISH_ABILITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$ENGLISH_ABILITY,
+  main = "ENGLISH_ABILITY",
+  xlab = "Count",
+  ylab = "ENGLISH_ABILITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$ENGLISH_ABILITY), 
+     main="ENGLISH_ABILITY DISTRIBUTION")
+polygon(density(RAW_LIMITED$ENGLISH_ABILITY), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$ENGLISH_ABILITY, RAW_LIMITED$EARNINGS)
+```
+
+* OTHER_LANGUAGE
+```{r}
+qplot(RAW_LIMITED$OTHER_LANGUAGE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for OTHER_LANGUAGE", 
+      xlab = "OTHER_LANGUAGE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$OTHER_LANGUAGE,
+  main = "OTHER_LANGUAGE",
+  xlab = "Count",
+  ylab = "OTHER_LANGUAGE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$OTHER_LANGUAGE), 
+     main="OTHER_LANGUAGE DISTRIBUTION")
+polygon(density(RAW_LIMITED$OTHER_LANGUAGE), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$OTHER_LANGUAGE, RAW_LIMITED$EARNINGS)
+```
+
+* MAR_STATUS
+```{r}
+qplot(RAW_LIMITED$MAR_STATUS,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for MAR_STATUS", 
+      xlab = "MAR_STATUS",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$MAR_STATUS,
+  main = "MAR_STATUS",
+  xlab = "Count",
+  ylab = "MAR_STATUS",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$MAR_STATUS), 
+     main="MAR_STATUS DISTRIBUTION")
+polygon(density(RAW_LIMITED$MAR_STATUS), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$MAR_STATUS, RAW_LIMITED$EARNINGS)
+```
+
+* EDU_LEVEL
+```{r}
+qplot(RAW_LIMITED$EDU_LEVEL,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for EDU_LEVEL", 
+      xlab = "EDU_LEVEL",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$EDU_LEVEL,
+  main = "EDU_LEVEL",
+  xlab = "Count",
+  ylab = "EDU_LEVEL",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$EDU_LEVEL), 
+     main="EDU_LEVEL DISTRIBUTION")
+polygon(density(RAW_LIMITED$EDU_LEVEL), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$EDU_LEVEL, RAW_LIMITED$EARNINGS)
+```
+
+* SEX
+```{r}
+qplot(RAW_LIMITED$SEX,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SEX", 
+      xlab = "SEX",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$SEX,
+  main = "SEX",
+  xlab = "Count",
+  ylab = "SEX",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$SEX), 
+     main="SEX DISTRIBUTION")
+polygon(density(RAW_LIMITED$SEX), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$SEX, RAW_LIMITED$EARNINGS)
+```
+
+* SUPP_INC
+```{r}
+qplot(RAW_LIMITED$SUPP_INC,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SUPP_INC", 
+      xlab = "SUPP_INC",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$SUPP_INC,
+  main = "SUPP_INC",
+  xlab = "Count",
+  ylab = "SUPP_INC",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$SUPP_INC), 
+     main="SUPP_INC DISTRIBUTION")
+polygon(density(RAW_LIMITED$SUPP_INC), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$SUPP_INC, RAW_LIMITED$EARNINGS)
+```
+
+* SOCIAL_SECURITY
+```{r}
+qplot(RAW_LIMITED$SOCIAL_SECURITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SOCIAL_SECURITY", 
+      xlab = "SOCIAL_SECURITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$SOCIAL_SECURITY,
+  main = "SOCIAL_SECURITY",
+  xlab = "Count",
+  ylab = "SOCIAL_SECURITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$SOCIAL_SECURITY), 
+     main="SOCIAL_SECURITY DISTRIBUTION")
+polygon(density(RAW_LIMITED$SOCIAL_SECURITY), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$SOCIAL_SECURITY, RAW_LIMITED$EARNINGS)
+```
+
+* WAGE
+```{r}
+qplot(RAW_LIMITED$WAGE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WAGE", 
+      xlab = "WAGE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$WAGE,
+  main = "WAGE",
+  xlab = "Count",
+  ylab = "WAGE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$WAGE), 
+     main="WAGE DISTRIBUTION")
+polygon(density(RAW_LIMITED$WAGE), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$WAGE, RAW_LIMITED$EARNINGS)
+```
+
+* HOURS_WORKED
+```{r}
+qplot(RAW_LIMITED$HOURS_WORKED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for HOURS_WORKED", 
+      xlab = "HOURS_WORKED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$HOURS_WORKED,
+  main = "HOURS_WORKED",
+  xlab = "Count",
+  ylab = "HOURS_WORKED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$HOURS_WORKED), 
+     main="HOURS_WORKED DISTRIBUTION")
+polygon(density(RAW_LIMITED$HOURS_WORKED), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$HOURS_WORKED, RAW_LIMITED$EARNINGS)
+```
+
+* WEEKS_WORKED
+```{r}
+qplot(RAW_LIMITED$WEEKS_WORKED,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for WEEKS_WORKED", 
+      xlab = "WEEKS_WORKED",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$WEEKS_WORKED,
+  main = "WEEKS_WORKED",
+  xlab = "Count",
+  ylab = "WEEKS_WORKED",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$WEEKS_WORKED), 
+     main="WEEKS_WORKED DISTRIBUTION")
+polygon(density(RAW_LIMITED$WEEKS_WORKED), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$WEEKS_WORKED, RAW_LIMITED$EARNINGS)
+```
+
+* DISABILITY
+```{r}
+qplot(RAW_LIMITED$DISABILITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for DISABILITY", 
+      xlab = "DISABILITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$DISABILITY,
+  main = "DISABILITY",
+  xlab = "Count",
+  ylab = "DISABILITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$DISABILITY), 
+     main="DISABILITY DISTRIBUTION")
+polygon(density(RAW_LIMITED$DISABILITY), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$DISABILITY, RAW_LIMITED$EARNINGS)
+```
+
+* EMPLOYMENT
+```{r}
+qplot(RAW_LIMITED$EMPLOYMENT,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for EMPLOYMENT", 
+      xlab = "EMPLOYMENT",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$EMPLOYMENT,
+  main = "EMPLOYMENT",
+  xlab = "Count",
+  ylab = "EMPLOYMENT",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$EMPLOYMENT), 
+     main="EMPLOYMENT DISTRIBUTION")
+polygon(density(RAW_LIMITED$EMPLOYMENT), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$EMPLOYMENT, RAW_LIMITED$EARNINGS)
+```
+
+* NATIVITY
+```{r}
+qplot(RAW_LIMITED$NATIVITY,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for NATIVITY", 
+      xlab = "NATIVITY",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$NATIVITY,
+  main = "NATIVITY",
+  xlab = "Count",
+  ylab = "NATIVITY",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$NATIVITY), 
+     main="NATIVITY DISTRIBUTION")
+polygon(density(RAW_LIMITED$NATIVITY), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$NATIVITY, RAW_LIMITED$EARNINGS)
+```
+
+* SECOND_GEN
+```{r}
+qplot(RAW_LIMITED$SECOND_GEN,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for SECOND_GEN", 
+      xlab = "SECOND_GEN",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$SECOND_GEN,
+  main = "SECOND_GEN",
+  xlab = "Count",
+  ylab = "SECOND_GEN",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$SECOND_GEN), 
+     main="SECOND_GEN DISTRIBUTION")
+polygon(density(RAW_LIMITED$SECOND_GEN), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$SECOND_GEN, RAW_LIMITED$EARNINGS)
+```
+
+* CHILDREN
+```{r}
+qplot(RAW_LIMITED$CHILDREN,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for CHILDREN", 
+      xlab = "CHILDREN",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$CHILDREN,
+  main = "CHILDREN",
+  xlab = "Count",
+  ylab = "CHILDREN",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$CHILDREN), 
+     main="CHILDREN DISTRIBUTION")
+polygon(density(RAW_LIMITED$CHILDREN), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$CHILDREN, RAW_LIMITED$EARNINGS)
+```
+
+* INCOME
+```{r}
+qplot(RAW_LIMITED$INCOME,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for INCOME", 
+      xlab = "INCOME",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$INCOME,
+  main = "INCOME",
+  xlab = "Count",
+  ylab = "INCOME",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$INCOME), 
+     main="INCOME DISTRIBUTION")
+polygon(density(RAW_LIMITED$INCOME), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$INCOME, RAW_LIMITED$EARNINGS)
+```
+
+* RACE
+```{r}
+qplot(RAW_LIMITED$RACE,
+      geom="histogram",
+      binwidth = 5,  
+      main = "Histogram for RACE", 
+      xlab = "RACE",  
+      fill=I("orange"), 
+      col=I("black"), 
+      #alpha=I(.5),
+      )
+
+boxplot(RAW_LIMITED$RACE,
+  main = "RACE",
+  xlab = "Count",
+  ylab = "RACE",
+  col = "darkorchid",
+  border = "brown",
+  horizontal = TRUE,
+  notch = FALSE
+)
+
+plot(density(RAW_LIMITED$RACE), 
+     main="RACE DISTRIBUTION")
+polygon(density(RAW_LIMITED$RACE), col="pink", border="blue")
+
+
+plot(RAW_LIMITED$RACE, RAW_LIMITED$EARNINGS)
+```
