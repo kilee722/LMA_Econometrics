@@ -25,20 +25,24 @@ Regressing our independent variables against the logarithm of earnings allowed r
 
 
 Table1:
+
 ![image](https://user-images.githubusercontent.com/55430338/77609780-27568c80-6ede-11ea-8426-cd813f52b6d1.png)
 
 
 Table2:
+
 Initial Robust Model and Coefficients Corrected for Heteroskedasticity ~ Not Separated for Gendered Interaction Effects
 ![image](https://user-images.githubusercontent.com/55430338/77609813-389f9900-6ede-11ea-87f9-e585a01763b5.png)
 
 
 Table 3: 
+
 Comparison of Female and Male Robust Models Corrected for Heteroskedasticity
 ![image](https://user-images.githubusercontent.com/55430338/77609853-5a008500-6ede-11ea-911e-63fe31842aa0.png)
 
 
 Table 4: 
+
 Interpretation of Robust Models' Coefficients ~ the percentage change in earnings
 ![image](https://user-images.githubusercontent.com/55430338/77609875-697fce00-6ede-11ea-8cdf-41f489cbdccd.png)
 
